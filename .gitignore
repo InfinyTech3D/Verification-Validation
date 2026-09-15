@@ -1,0 +1,2 @@
+# ignore cached bytecode-compiled python scene files
+*__pycache__/
