@@ -7,20 +7,23 @@ from ...geometry import Bar1D
 
 def validate_parameters(config):
     """Required ElasticBar parameters."""
-    required = ['geometry', 'resolution']
+    required = ['geometry', 'resolution', 'element']
     missing = [p for p in required if p not in config]
     if missing:
         raise ValueError(f"ElasticBar: missing required parameters {missing}")
     if not isinstance(config['geometry'], Bar1D):
         raise ValueError(f"ElasticBar: geometry must be a Bar1D, "
                          f"got {type(config['geometry']).__name__}")
+    if config['element'] != 'edge':
+        raise ValueError(f"ElasticBar: element must be 'edge', got {config['element']!r}")
 
 
 class ElasticBar(ScenePrefab):
     """Prefab for an elastic bar model in SOFA."""
 
     prefabParameters = [
-        {'name': 'resolution', 'type': 'int', 'help': 'nodes along the bar'},
+        {'name': 'resolution', 'type': 'int',    'help': 'nodes along the bar'},
+        {'name': 'element',    'type': 'string', 'help': "element kind, must be 'edge'"},
     ]
 
     def __init__(self, *args, **kwargs):
@@ -29,7 +32,7 @@ class ElasticBar(ScenePrefab):
 
     def init(self):
         VecType = VEC_DIM[self.geometry.spatial_dimensions]
-        element_kind = ELEMENTS["edge"]
+        element_kind = ELEMENTS[self.element.value]
 
         # Grid Topology Node
         with self.addChild('Grid') as grid_node:
@@ -51,3 +54,6 @@ class ElasticBar(ScenePrefab):
                                  template=f"{VecType},{element_kind.cpp}")
             # ODE & Linear Solvers
             self.add_solvers(bar, self.spec['solvers'])
+
+    def mechanical_node(self):
+        return self.bar

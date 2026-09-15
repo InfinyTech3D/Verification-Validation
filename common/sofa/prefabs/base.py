@@ -21,6 +21,9 @@ class ScenePrefab(Sofa.Prefab):
         object.__setattr__(self, 'geometry', geometry)
         Sofa.Prefab.__init__(self, *args, **kwargs)
 
+    def mechanical_node(self):
+        raise NotImplementedError
+
     def add_force_field(self, node, config, material, template):
         """The *FEMForceField component under test, its Data merged from `config` and `material`."""
         node.addObject(config['type'], name='fem', template=template, topology='@topology',

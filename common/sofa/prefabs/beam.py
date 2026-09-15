@@ -65,3 +65,6 @@ class ElasticBeam(ScenePrefab):
                                  template=f"{VecType},{element_kind.cpp}")
             # ODE & Linear Solvers
             self.add_solvers(beam, self.spec['solvers'])
+
+    def mechanical_node(self):
+        return self.beam
