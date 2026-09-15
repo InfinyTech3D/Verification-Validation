@@ -6,7 +6,7 @@ from ..conventions import VEC_DIM, ELEMENTS
 
 def validate_parameters(config):
     """Required ElasticBar parameters."""
-    required = ['length', 'resolution', 'spatialDimensions']
+    required = ['geometry', 'resolution']
     missing = [p for p in required if p not in config]
     if missing:
         raise ValueError(f"ElasticBar: missing required parameters {missing}")
@@ -16,9 +16,7 @@ class ElasticBar(ScenePrefab):
     """Prefab for an elastic bar model in SOFA."""
 
     prefabParameters = [
-        {'name': 'length',            'type': 'double', 'help': 'bar length'},
-        {'name': 'resolution',        'type': 'int',    'help': 'nodes along the bar'},
-        {'name': 'spatialDimensions', 'type': 'int',    'help': 'dimension of the embedding space'},
+        {'name': 'resolution', 'type': 'int', 'help': 'nodes along the bar'},
     ]
 
     def __init__(self, *args, **kwargs):
@@ -26,14 +24,14 @@ class ElasticBar(ScenePrefab):
         super().__init__(*args, **kwargs)
 
     def init(self):
-        VecType = VEC_DIM[self.spatialDimensions.value]
+        VecType = VEC_DIM[self.geometry.spatial_dimensions]
         element_kind = ELEMENTS["edge"]
 
         # Grid Topology Node
         with self.addChild('Grid') as grid_node:
             grid_node.addObject('RegularGridTopology', name='grid',
                                 nx=int(self.resolution.value), ny=1, nz=1,
-                                min=[0.0, 0.0, 0.0], max=[self.length.value, 0.0, 0.0])
+                                min=[0.0, 0.0, 0.0], max=[self.geometry.length, 0.0, 0.0])
 
         # Node containing Bar components
         with self.addChild('Bar') as bar:

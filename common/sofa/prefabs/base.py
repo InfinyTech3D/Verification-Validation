@@ -14,10 +14,11 @@ def params(config, *exclude):
 class ScenePrefab(Sofa.Prefab):
     """Base SOFA prefab: holds `spec` and offers adders a subclass calls to build itself from it."""
 
-    def __init__(self, *args, spec=None, **kwargs):
+    def __init__(self, *args, spec=None, geometry=None, **kwargs):
         # object.__setattr__: the C++ object Sofa's own __setattr__ needs doesn't exist yet, and
-        # Sofa.Prefab.__init__ below calls init(), which reads spec; thus spec must land first.
+        # Sofa.Prefab.__init__ below calls init(), which reads spec/geometry
         object.__setattr__(self, 'spec', spec or {})
+        object.__setattr__(self, 'geometry', geometry)
         Sofa.Prefab.__init__(self, *args, **kwargs)
 
     def add_force_field(self, node, config, material, template):

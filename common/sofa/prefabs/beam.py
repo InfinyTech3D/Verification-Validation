@@ -7,25 +7,23 @@ from ..conventions import VEC_DIM, ELEMENTS
 def validate_parameters(config):
     """Required ElasticBeam parameters, and that the embedding space is at least 2D.
 
-    A beam is a 2D or 3D continuum domain (plane or solid elasticity)
+    A beam is a 2D or 3D continuum domain (plane or solid elasticity).
     """
-    required = ['extents', 'resolution', 'spatialDimensions', 'element']
+    required = ['geometry', 'resolution', 'element']
     missing = [p for p in required if p not in config]
     if missing:
         raise ValueError(f"ElasticBeam: missing required parameters {missing}")
-    if config['spatialDimensions'] < 2:
+    if config['geometry'].spatial_dimensions < 2:
         raise ValueError(f"ElasticBeam: spatialDimensions must be at least 2, "
-                         f"got {config['spatialDimensions']}")
+                         f"got {config['geometry'].spatial_dimensions}")
 
 
 class ElasticBeam(ScenePrefab):
     """Prefab for an elastic beam model in SOFA."""
 
     prefabParameters = [
-        {'name': 'extents',        'type': 'Vec3d',  'help': 'box max corner [Lx, Ly, Lz]'},
-        {'name': 'resolution',     'type': 'Vec3d',  'help': 'nodes per axis [nx, ny, nz]'},
-        {'name': 'spatialDimensions', 'type': 'int', 'help': 'dimension of the embedding space'},
-        {'name': 'element',        'type': 'string', 'help': 'element element_kind (edge/tri/quad/tet/hexa)'},
+        {'name': 'resolution', 'type': 'Vec3d',  'help': 'nodes per axis [nx, ny, nz]'},
+        {'name': 'element',    'type': 'string', 'help': 'element kind (edge/tri/quad/tet/hexa)'},
     ]
 
     def __init__(self, *args, **kwargs):
@@ -33,7 +31,8 @@ class ElasticBeam(ScenePrefab):
         super().__init__(*args, **kwargs)
 
     def init(self):
-        VecType = VEC_DIM[self.spatialDimensions.value]
+        extents = list(self.geometry.parameters) + [0.0] * (3 - len(self.geometry.parameters))
+        VecType = VEC_DIM[self.geometry.spatial_dimensions]
         element_kind = ELEMENTS[self.element.value]
         res = self.resolution.value
 
@@ -41,7 +40,7 @@ class ElasticBeam(ScenePrefab):
         with self.addChild('Grid') as grid_node:
             grid_node.addObject('RegularGridTopology', name='grid',
                                 nx=int(res[0]), ny=int(res[1]), nz=int(res[2]),
-                                min=[0.0, 0.0, 0.0], max=list(self.extents.value))
+                                min=[0.0, 0.0, 0.0], max=extents)
 
         # Node containing Beam components
         with self.addChild('Beam') as beam:
