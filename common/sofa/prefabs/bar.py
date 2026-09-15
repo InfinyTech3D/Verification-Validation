@@ -2,6 +2,7 @@
 
 from .base import ScenePrefab
 from ..conventions import VEC_DIM, ELEMENTS
+from ...geometry import Bar1D
 
 
 def validate_parameters(config):
@@ -10,6 +11,9 @@ def validate_parameters(config):
     missing = [p for p in required if p not in config]
     if missing:
         raise ValueError(f"ElasticBar: missing required parameters {missing}")
+    if not isinstance(config['geometry'], Bar1D):
+        raise ValueError(f"ElasticBar: geometry must be a Bar1D, "
+                         f"got {type(config['geometry']).__name__}")
 
 
 class ElasticBar(ScenePrefab):

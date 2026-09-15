@@ -2,6 +2,7 @@
 
 from .base import ScenePrefab
 from ..conventions import VEC_DIM, ELEMENTS
+from ...geometry import Beam2D, Beam3D
 
 
 def validate_parameters(config):
@@ -13,6 +14,9 @@ def validate_parameters(config):
     missing = [p for p in required if p not in config]
     if missing:
         raise ValueError(f"ElasticBeam: missing required parameters {missing}")
+    if not isinstance(config['geometry'], (Beam2D, Beam3D)):
+        raise ValueError(f"ElasticBeam: geometry must be a Beam2D or Beam3D, "
+                         f"got {type(config['geometry']).__name__}")
     if config['geometry'].spatial_dimensions < 2:
         raise ValueError(f"ElasticBeam: spatialDimensions must be at least 2, "
                          f"got {config['geometry'].spatial_dimensions}")
