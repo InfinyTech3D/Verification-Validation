@@ -12,12 +12,12 @@ def params(config, *exclude):
 
 
 class ScenePrefab(Sofa.Prefab):
-    """Base SOFA prefab: holds `spec` and offers adders a subclass calls to build itself from it."""
+    """Base SOFA prefab: holds `configs` and offers adders a subclass calls to build itself from it."""
 
-    def __init__(self, *args, spec=None, geometry=None, **kwargs):
+    def __init__(self, *args, configs=None, geometry=None, **kwargs):
         # object.__setattr__: the C++ object Sofa's own __setattr__ needs doesn't exist yet, and
-        # Sofa.Prefab.__init__ below calls init(), which reads spec/geometry
-        object.__setattr__(self, 'spec', spec or {})
+        # Sofa.Prefab.__init__ below calls init(), which reads configs/geometry
+        object.__setattr__(self, 'configs', configs or {})
         object.__setattr__(self, 'geometry', geometry)
         Sofa.Prefab.__init__(self, *args, **kwargs)
 

@@ -50,10 +50,10 @@ class ElasticBar(ScenePrefab):
             # DOFs
             bar.addObject('MechanicalObject', name='dofs', template=VecType)
             # ForceField to test
-            self.add_force_field(bar, self.spec['forceField'], self.spec['material'],
+            self.add_force_field(bar, self.configs['forceField'], self.configs['material'],
                                  template=f"{VecType},{element_kind.cpp}")
             # ODE & Linear Solvers
-            self.add_solvers(bar, self.spec['solvers'])
+            self.add_solvers(bar, self.configs['solvers'])
 
     def mechanical_node(self):
         return self.bar

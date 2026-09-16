@@ -23,9 +23,9 @@ class ManufacturedSolution(ABC):
     prescribe_displacement_on = {}    # {region: fixed_directions} where u is prescribed
     traction_on = ()                  # regions where the derived traction is applied
 
-    def __init__(self, spec, geometry):
-        self.spec = spec                            # the deck's "solution" block; a subclass may read more from it
-        self.amplitude = spec["amplitude"]          # too large relative to the geometry inverts elements
+    def __init__(self, config, geometry):
+        self.config = config                        # the deck's "solution" block; a subclass may read more from it
+        self.amplitude = config["amplitude"]        # too large relative to the geometry inverts elements
         self.parameters = geometry.named_parameters
         self.dim = geometry.dim
 

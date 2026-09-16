@@ -27,13 +27,13 @@ _LAME = {1: _toLameParameters1D,
          3: Sofa.SofaDeformable.toLameParameters3D}
 
 
-def _material(spec, spatial_dimensions):
+def _material(config, spatial_dimensions):
     """The deck's material, built from the parameters it states."""
-    return MATERIALS[spec["type"]](*_LAME[spatial_dimensions](spec["youngModulus"],
-                                                             spec["poissonRatio"]))
+    return MATERIALS[config["type"]](*_LAME[spatial_dimensions](config["youngModulus"],
+                                                             config["poissonRatio"]))
 
 
-def _validate(name, spec):
+def _validate(name, config):
     """Every required key present, nothing unknown, and one expectation per metric.
 
     `solvers` and `forceField` pass their own keys through to SOFA Data verbatim, so this module
@@ -43,32 +43,32 @@ def _validate(name, spec):
     problems = []
 
     # Top-level keys: exact match against REQUIRED.
-    missing = REQUIRED - set(spec)
+    missing = REQUIRED - set(config)
     if missing:
         problems.append(f"missing {sorted(missing)}")
-    unknown = set(spec) - REQUIRED
+    unknown = set(config) - REQUIRED
     if unknown:
         problems.append(f"unknown {sorted(unknown)}")
 
     # mesh: exact match against MESH_KEYS.
-    if "mesh" in spec and set(spec["mesh"]) != MESH_KEYS:
-        problems.append(f"mesh must state exactly {sorted(MESH_KEYS)}, got {sorted(spec['mesh'])}")
+    if "mesh" in config and set(config["mesh"]) != MESH_KEYS:
+        problems.append(f"mesh must state exactly {sorted(MESH_KEYS)}, got {sorted(config['mesh'])}")
 
     # solution: just needs a type and an amplitude; the rest is that solution's own business.
-    solution_spec = spec.get("solution", {})
-    absent = {"type", "amplitude"} - set(solution_spec)
+    solution_config = config.get("solution", {})
+    absent = {"type", "amplitude"} - set(solution_config)
     if absent:
         problems.append(f"solution must state {sorted(absent)}")
 
     # material: must name a registered type.
-    material = spec.get("material", {})
+    material = config.get("material", {})
     if "type" not in material:
         problems.append(f"material must state a type, one of {sorted(MATERIALS)}")
     elif material["type"] not in MATERIALS:
         problems.append(f"unknown material {material['type']!r}, expected one of {sorted(MATERIALS)}")
 
     # forceField: must be an object stating a type.
-    force_field = spec.get("forceField")
+    force_field = config.get("forceField")
     if not isinstance(force_field, dict):
         problems.append(f"forceField must be an object stating a type, got {force_field!r}")
         force_field = {}
@@ -87,9 +87,9 @@ def _validate(name, spec):
 
     # expectedOrder: one entry per registered metric, exactly.
     names = {metric.name for metric in METRICS}
-    if "expectedOrder" in spec and set(spec["expectedOrder"]) != names:
+    if "expectedOrder" in config and set(config["expectedOrder"]) != names:
         problems.append(f"expectedOrder must state exactly {sorted(names)}, "
-                        f"got {sorted(spec['expectedOrder'])}")
+                        f"got {sorted(config['expectedOrder'])}")
 
     if problems:
         raise ValueError(f"{name}: " + "; ".join(problems))
@@ -98,37 +98,37 @@ def _validate(name, spec):
 class Deck:
     """One deck: the study it specifies, with the geometry and the manufactured problem built."""
 
-    def __init__(self, path, spec):
+    def __init__(self, path, config):
         path = pathlib.Path(path)
 
         # TODO Rework ugly naming convention
         self.name = f"{path.parent.name}/{path.stem}"
-        _validate(self.name, spec)
+        _validate(self.name, config)
 
         # Geometry Class
-        geometry_spec = dict(spec["geometry"])
-        self.geometry = GEOMETRIES[geometry_spec.pop("type")](**geometry_spec)
+        geometry_config = dict(config["geometry"])
+        self.geometry = GEOMETRIES[geometry_config.pop("type")](**geometry_config)
 
         # ManufacturedSolution Class. Keyed on the geometry's topological dimension.
-        solution = MANUFACTURED_SOLUTIONS[(self.geometry.dim, spec["solution"]["type"])](
-            spec["solution"], self.geometry)
+        solution = MANUFACTURED_SOLUTIONS[(self.geometry.dim, config["solution"]["type"])](
+            config["solution"], self.geometry)
 
         # ManufacturedProblem Class
         self.manufactured_problem = ManufacturedProblem(
-            solution, _material(spec["material"], self.geometry.spatial_dimensions),
+            solution, _material(config["material"], self.geometry.spatial_dimensions),
             self.geometry.spatial_dimensions)
 
-        self.element = spec["element"]
-        self.material = spec["material"]
-        self.force_field = spec["forceField"]
-        self.solvers = spec["solvers"]
-        self.mesh = spec["mesh"]
-        self.quadrature_degree = spec["quadratureDegree"]
-        self.source_quadrature_degree = spec["sourceQuadratureDegree"]
-        self.asymptotic_tolerance = spec["asymptoticTolerance"]
-        self.expected_order = spec["expectedOrder"]
-        self.expected_order_tolerance = spec["expectedOrderTolerance"]
-        self.noise_floor_fraction = spec["noiseFloorFraction"]
+        self.element = config["element"]
+        self.material = config["material"]
+        self.force_field = config["forceField"]
+        self.solvers = config["solvers"]
+        self.mesh = config["mesh"]
+        self.quadrature_degree = config["quadratureDegree"]
+        self.source_quadrature_degree = config["sourceQuadratureDegree"]
+        self.asymptotic_tolerance = config["asymptoticTolerance"]
+        self.expected_order = config["expectedOrder"]
+        self.expected_order_tolerance = config["expectedOrderTolerance"]
+        self.noise_floor_fraction = config["noiseFloorFraction"]
 
     @classmethod
     def load(cls, path):

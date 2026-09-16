@@ -61,10 +61,10 @@ class ElasticBeam(ScenePrefab):
             # DOFs
             beam.addObject('MechanicalObject', name='dofs', template=VecType)
             # ForceField to test
-            self.add_force_field(beam, self.spec['forceField'], self.spec['material'],
+            self.add_force_field(beam, self.configs['forceField'], self.configs['material'],
                                  template=f"{VecType},{element_kind.cpp}")
             # ODE & Linear Solvers
-            self.add_solvers(beam, self.spec['solvers'])
+            self.add_solvers(beam, self.configs['solvers'])
 
     def mechanical_node(self):
         return self.beam

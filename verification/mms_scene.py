@@ -42,9 +42,9 @@ class MMSScene(SofaScene):
         root.addObject('DefaultAnimationLoop')
 
         prefab_cls = PREFAB_BY_GEOMETRY[type(self.geometry)]
-        spec = {'material': self.material, 'forceField': self.force_field, 'solvers': self.solvers}
+        configs = {'material': self.material, 'forceField': self.force_field, 'solvers': self.solvers}
         prefab = root.addChild(prefab_cls(name=prefab_cls.__name__, geometry=self.geometry,
-                                          resolution=self.resolution, element=self.element, spec=spec))
+                                          resolution=self.resolution, element=self.element, configs=configs))
         mechanical = prefab.mechanical_node()
 
         dim, spatial_dimensions = self.geometry.dim, self.geometry.spatial_dimensions
