@@ -4,8 +4,6 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from .fem import energy, frobenius, l2
-
 
 class Measurement:
     """One solved mesh refinement level, sampled at its quadrature points."""
@@ -32,7 +30,7 @@ class Measurement:
         self.u_error = self.u_h - self.u_exact
         self.grad_error = self.grad_h - self.grad_exact
 
-        self.energy_exact = energy(quadrature, self.grad_exact, manufactured_problem.energy_density)
+        self.energy_exact = quadrature.energy(self.grad_exact, manufactured_problem.energy_density)
 
 
 class Metric(ABC):
@@ -56,10 +54,10 @@ class L2(Metric):
     name = "L2"
 
     def measure(self, measurement):
-        return l2(measurement.quadrature, measurement.u_error)
+        return measurement.quadrature.l2(measurement.u_error)
 
     def scale(self, measurement):
-        return l2(measurement.quadrature, measurement.u_exact)
+        return measurement.quadrature.l2(measurement.u_exact)
 
 
 class H1(Metric):
@@ -68,10 +66,10 @@ class H1(Metric):
     name = "H1"
 
     def measure(self, measurement):
-        return frobenius(measurement.quadrature, measurement.grad_error)
+        return measurement.quadrature.frobenius(measurement.grad_error)
 
     def scale(self, measurement):
-        return frobenius(measurement.quadrature, measurement.grad_exact)
+        return measurement.quadrature.frobenius(measurement.grad_exact)
 
 
 class EnergyNorm(Metric):
@@ -86,8 +84,8 @@ class EnergyNorm(Metric):
     name = "Enorm"
 
     def measure(self, measurement):
-        return float(np.sqrt(2.0 * energy(measurement.quadrature, measurement.grad_error,
-                                          measurement.manufactured_problem.energy_density)))
+        return float(np.sqrt(2.0 * measurement.quadrature.energy(
+            measurement.grad_error, measurement.manufactured_problem.energy_density)))
 
     def scale(self, measurement):
         return np.sqrt(2.0 * measurement.energy_exact)
