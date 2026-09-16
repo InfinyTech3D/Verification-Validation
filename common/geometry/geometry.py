@@ -21,7 +21,7 @@ class Geometry(ABC):
 
     @property
     def named_parameters(self) -> dict:
-        """Parameters keyed by name: how a manufactured field asks for one of them.
+        """Parameters keyed by name: how a manufactured solution asks for one of them.
 
         e.g. Beam2D(length=2.0, width=0.5).named_parameters == {"length": 2.0, "width": 0.5}
         """
