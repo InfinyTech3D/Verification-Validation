@@ -3,6 +3,8 @@
 import Sofa
 import Sofa.Core
 
+from .conventions import ELEMENTS
+
 
 def region_indices(geometry, region, nodes):
     """Node indices whose coordinate satisfies the geometry's named-region predicate."""
@@ -17,18 +19,18 @@ def region_indices(geometry, region, nodes):
 class ApplyManufacturedSourceTerm(Sofa.Core.Controller):
     """Loads a mesh with the body force a manufactured solution puts on the right-hand side."""
 
-    def __init__(self, node, dofs, source, vec_type, element_cpp, quadrature_degree,
+    def __init__(self, node, dofs, source, vec_type, element, quadrature_degree,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.node = node
         self.dofs = dofs
         self.source = source
         self.vec_type = vec_type
-        self.element_cpp = element_cpp
+        self.element = element
         self.quadrature_degree = quadrature_degree
 
     def init(self):
-        template = f'{self.vec_type},{self.element_cpp}'
+        template = f'{self.vec_type},{ELEMENTS[self.element].cpp}'
 
         density = self.node.addObject('NodalSourceDensity', name='sourceDensity',
                                       template=self.vec_type)
@@ -40,6 +42,48 @@ class ApplyManufacturedSourceTerm(Sofa.Core.Controller):
         self.node.addObject('FEMSourceTermIntegrator', name='bodySource', template=template,
                             topology='@topology', quadratureDegree=self.quadrature_degree,
                             constantSources='@bodyForce')
+
+
+class ApplyManufacturedTraction(Sofa.Core.Controller):
+    """Loads the whole boundary of a mesh with the traction a manufactured solution exerts on it."""
+
+    def __init__(self, node, dofs, stress, vec_type, element, quadrature_degree, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.node = node
+        self.dofs = dofs
+        self.stress = stress
+        self.vec_type = vec_type
+        self.element = element
+        self.quadrature_degree = quadrature_degree
+
+    def init(self):
+        mappings = ELEMENTS[self.element].boundary_mappings
+        if not mappings:
+            return  # the facets of an edge are points, which no traction can be integrated over
+
+        boundary = self.node.addChild('neumann')
+
+        # Walk down to the boundary elements, one topological mapping at a time.
+        topology = '@../topology'
+        for kind, mapping in mappings:
+            element_kind = ELEMENTS[kind]
+            boundary.addObject(element_kind.container, name=kind)
+            boundary.addObject(element_kind.container.replace('Container', 'Modifier'))
+            boundary.addObject(mapping, input=topology, output=f'@{kind}')
+            topology = f'@{kind}'
+
+        # The boundary node carries no state of its own, so the load lands on the dofs above it and
+        # the nodal stress is indexed by those same nodes.
+        rest_positions = self.dofs.rest_position.array()
+        stress = boundary.addObject('NodalStress', name='stress', template=self.vec_type)
+        # reshape tensor to adjust to NodalStress input format.
+        stress.property.value = self.stress(rest_positions).reshape(len(rest_positions), -1)
+
+        template = f'{self.vec_type},{ELEMENTS[mappings[-1][0]].cpp}'
+        boundary.addObject('StressSourceTerm', name='traction', template=template, stress='@stress')
+        boundary.addObject('FEMSourceTermIntegrator', name='tractionSource', template=template,
+                           topology=topology, quadratureDegree=self.quadrature_degree,
+                           constantSources='@traction')
 
 
 class RegionClamp(Sofa.Core.Controller):

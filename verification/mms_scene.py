@@ -1,8 +1,9 @@
 """Verification suite: an MMS scene whose BCs come from a manufactured solution."""
 
 from common.sofa import SofaScene
-from common.sofa.conventions import VEC_DIM, ELEMENTS
-from common.sofa.controllers import ApplyManufacturedSourceTerm, RegionClamp
+from common.sofa.conventions import VEC_DIM
+from common.sofa.controllers import (ApplyManufacturedSourceTerm, ApplyManufacturedTraction,
+                                     RegionClamp)
 from common.sofa.prefabs import PREFAB_BY_GEOMETRY
 
 
@@ -53,8 +54,14 @@ class MMSScene(SofaScene):
         # Load the mesh with the body force the manufactured solution puts on the rhs
         mechanical.addObject(ApplyManufacturedSourceTerm(
             node=mechanical, dofs=mechanical.dofs, source=self.manufactured_problem.source,
-            vec_type=VEC, element_cpp=ELEMENTS[self.element].cpp,
+            vec_type=VEC, element=self.element,
             quadrature_degree=self.source_quadrature_degree, name='bodyForceCtrl'))
+
+        # Load the whole boundary with the traction that solution exerts there
+        mechanical.addObject(ApplyManufacturedTraction(
+            node=mechanical, dofs=mechanical.dofs, stress=self.manufactured_problem.stress,
+            vec_type=VEC, element=self.element,
+            quadrature_degree=self.source_quadrature_degree, name='tractionCtrl'))
 
         # Clamp the mesh dofs by region as determined by the manufactured solution BCs
         mechanical.addObject(RegionClamp(geometry=self.geometry,
