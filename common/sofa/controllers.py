@@ -14,14 +14,42 @@ def region_indices(geometry, region, nodes):
     return indices
 
 
-class RegionClamp(Sofa.Core.Controller):
-    """Builds one PartialFixedProjectiveConstraint per boundary region, then applies
-    Dirichlet boundary conditions once the simulation has initialized.
+class ApplyManufacturedSourceTerm(Sofa.Core.Controller):
+    """Loads a mesh with the body force a manufactured solution puts on the right-hand side."""
 
-    For each region, the nodes belonging to it are found and handed to its constraint as
-    the indices it fixes. If a prescribed displacement is given, those nodes are also moved from
-    rest to rest + u in the constraint's fixed directions before the constraint clamps them there.
-    rest_position itself is never changed.
+    def __init__(self, node, dofs, source, vec_type, element_cpp, quadrature_degree,
+                 *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.node = node
+        self.dofs = dofs
+        self.source = source
+        self.vec_type = vec_type
+        self.element_cpp = element_cpp
+        self.quadrature_degree = quadrature_degree
+
+    def init(self):
+        template = f'{self.vec_type},{self.element_cpp}'
+
+        density = self.node.addObject('NodalSourceDensity', name='sourceDensity',
+                                      template=self.vec_type)
+        # One call for the whole mesh: the manufactured fields evaluate over an array of points.
+        density.property.value = self.source(self.dofs.rest_position.array())
+
+        self.node.addObject('VectorSourceTerm', name='bodyForce', template=template,
+                            sourceDensity='@sourceDensity')
+        self.node.addObject('FEMSourceTermIntegrator', name='bodySource', template=template,
+                            topology='@topology', quadratureDegree=self.quadrature_degree,
+                            constantSources='@bodyForce')
+
+
+class RegionClamp(Sofa.Core.Controller):
+    """Builds one PartialFixedProjectiveConstraint per boundary region, then applies Dirichlet
+    boundary conditions once the simulation has initialized.
+
+    For each region, the nodes belonging to it are found and handed to its constraint as the indices
+    it fixes. If a prescribed displacement is given, those nodes are also moved from rest to rest +
+    u in the constraint's fixed directions before the constraint clamps them there. rest_position
+    itself is never changed.
     """
 
     def __init__(self, geometry, dofs, node, prescribe_displacement_on, vec_type,
