@@ -1,6 +1,6 @@
 """Name -> class registries for deck-driven verification tests."""
 
-from ..common.geometry import Bar1D, Beam2D, Beam3D
+from common.geometry import Bar1D, Beam2D, Beam3D
 from . import manufactured
 from .materials import LinearElastic
 
