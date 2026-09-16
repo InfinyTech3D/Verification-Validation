@@ -35,7 +35,7 @@ class MMSScene(SofaScene):
         self.element = deck.element
         self.resolution = resolution
         self.solvers = deck.solvers
-        self.mms = deck.solution
+        self.manufactured_problem = deck.manufactured_problem
         self.source_quadrature_degree = deck.source_quadrature_degree
 
     def body(self, root):
@@ -53,8 +53,8 @@ class MMSScene(SofaScene):
         # Clamp the mesh dofs by region as determined by the manufactured solution BCs
         mechanical.addObject(RegionClamp(geometry=self.geometry,
                                          dofs=mechanical.dofs, node=mechanical,
-                                         prescribe_displacement_on=self.mms.prescribe_displacement_on,
-                                         vec_type=VEC, displacement=self.mms.u,
+                                         prescribe_displacement_on=self.manufactured_problem.prescribe_displacement_on,
+                                         vec_type=VEC, displacement=self.manufactured_problem.u,
                                          name='clampCtrl'))
 
         # For an embedded mesh (dim < spatial_dimensions) the out-of-plane dimensions are fixed.

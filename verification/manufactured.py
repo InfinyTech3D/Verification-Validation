@@ -24,7 +24,7 @@ class ManufacturedSolution(ABC):
     traction_on = ()                  # regions where the derived traction is applied
 
     def __init__(self, spec, geometry):
-        self.spec = spec                            # the deck's "function" block; a subclass may read more from it
+        self.spec = spec                            # the deck's "solution" block; a subclass may read more from it
         self.amplitude = spec["amplitude"]          # too large relative to the geometry inverts elements
         self.parameters = geometry.named_parameters
         self.dim = geometry.dim
@@ -44,8 +44,8 @@ class ManufacturedProblem:
     gradient, stress, body-force source, and energy density.
     """
 
-    def __init__(self, manufactured_solution, material, spatial_dimensions):
-        self.solution = manufactured_solution
+    def __init__(self, solution, material, spatial_dimensions):
+        self.solution = solution
         self.material = material
         dimensions = spatial_dimensions
 
@@ -113,7 +113,7 @@ class ManufacturedProblem:
         return compiled_field
 
 
-# --- The solutions themselves, one class per deck "function"; registry.py keys them by (dim, name). ---
+# --- The solutions themselves, one class per deck "solution"; registry.py keys them by (dim, name). ---
 
 class Quadratic1D(ManufacturedSolution):
     """u(x) = [A x^2]: body force constant, so the nodal source is the source; clamped at 'left'."""
