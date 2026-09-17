@@ -35,10 +35,11 @@ class ElasticBeam(ScenePrefab):
         super().__init__(*args, **kwargs)
 
     def init(self):
-        extents = list(self.geometry.parameters) + [0.0] * (3 - len(self.geometry.parameters))
+        dim = len(self.geometry.parameters)
+        extents = list(self.geometry.parameters) + [0.0] * (3 - dim)
         VecType = VEC_DIM[self.geometry.spatial_dimensions]
         element_kind = ELEMENTS[self.element.value]
-        res = self.resolution.value
+        res = list(self.resolution.value)[:dim] + [1] * (3 - dim)
 
         # Grid Topology Node
         with self.addChild('Grid') as grid_node:

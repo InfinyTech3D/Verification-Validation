@@ -1,5 +1,7 @@
 """Post-init SOFA controllers for the VnV suite."""
 
+import numpy as np
+
 import Sofa
 import Sofa.Core
 
@@ -47,43 +49,70 @@ class ApplyManufacturedSourceTerm(Sofa.Core.Controller):
 class ApplyManufacturedTraction(Sofa.Core.Controller):
     """Loads the whole boundary of a mesh with the traction a manufactured solution exerts on it."""
 
-    def __init__(self, node, dofs, stress, vec_type, element, quadrature_degree, *args, **kwargs):
+    def __init__(self, geometry, node, dofs, stress, vec_type, element, spatial_dimensions,
+                 quadrature_degree, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.geometry = geometry
         self.node = node
         self.dofs = dofs
         self.stress = stress
         self.vec_type = vec_type
         self.element = element
+        self.spatial_dimensions = spatial_dimensions
         self.quadrature_degree = quadrature_degree
 
     def init(self):
-        mappings = ELEMENTS[self.element].boundary_mappings
-        if not mappings:
-            return  # the facets of an edge are points, which no traction can be integrated over
-
-        boundary = self.node.addChild('neumann')
-
-        # Walk down to the boundary elements, one topological mapping at a time.
-        topology = '@../topology'
-        for kind, mapping in mappings:
-            element_kind = ELEMENTS[kind]
-            boundary.addObject(element_kind.container, name=kind)
-            boundary.addObject(element_kind.container.replace('Container', 'Modifier'))
-            boundary.addObject(mapping, input=topology, output=f'@{kind}')
-            topology = f'@{kind}'
-
-        # The boundary node carries no state of its own, so the load lands on the dofs above it and
-        # the nodal stress is indexed by those same nodes.
         rest_positions = self.dofs.rest_position.array()
-        stress = boundary.addObject('NodalStress', name='stress', template=self.vec_type)
-        # reshape tensor to adjust to NodalStress input format.
-        stress.property.value = self.stress(rest_positions).reshape(len(rest_positions), -1)
+        mappings = ELEMENTS[self.element].boundary_mappings
 
-        template = f'{self.vec_type},{ELEMENTS[mappings[-1][0]].cpp}'
+        # Only Edges have no Volume2Boundary mapping. Simply prescribe a nodal force.
+        if not mappings:
+            self.add_point_load(rest_positions)
+            return
+
+        boundary_kind = ELEMENTS[mappings[-1][0]]
+        if boundary_kind.dim + 1 != self.spatial_dimensions:
+            # TODO StressSourceTerm does not support elements of codimention 2. So we cannot apply
+            # traction BCs on Quad/Triangluar meshes in 3D. The Edge normals are arbitrary.
+            return
+
+        # Goes from the volume to the boundary elements, applying one topological mapping at a time.
+        boundary = self.node
+        for kind, mapping, data in mappings:
+            element_kind = ELEMENTS[kind]
+            boundary = boundary.addChild(kind)
+            boundary.addObject(element_kind.container, name='topology')
+            boundary.addObject(element_kind.container.replace('Container', 'Modifier'))
+            boundary.addObject(mapping, input='@../topology', output='@topology', **data)
+
+        # Apply the nodal stress load on the boundary.
+        template = f'{self.vec_type},{boundary_kind.cpp}'
+        # The manufactured stress at every node, converted to the layout NodalStress takes.
+        stress = self.stress(rest_positions)
+        rows, columns = np.tril_indices(stress.shape[-1])
+        nodal_stress = boundary.addObject('NodalStress', name='stress', template=self.vec_type)
+        nodal_stress.property.value = np.ascontiguousarray(stress[:, rows, columns])
+
         boundary.addObject('StressSourceTerm', name='traction', template=template, stress='@stress')
         boundary.addObject('FEMSourceTermIntegrator', name='tractionSource', template=template,
-                           topology=topology, quadratureDegree=self.quadrature_degree,
+                           topology='@topology', quadratureDegree=self.quadrature_degree,
                            constantSources='@traction')
+
+    def add_point_load(self, rest_positions):
+        """The nodal traction on every boundary region, its normal pointing away from the mesh."""
+        centre = rest_positions.mean(axis=0)
+        indices, tractions = [], []
+        for region in self.geometry.boundary_regions:
+            nodes = region_indices(self.geometry, region, rest_positions)
+            outward = rest_positions[nodes] - centre
+            outward /= np.linalg.norm(outward, axis=-1, keepdims=True)
+
+            indices += nodes
+            tractions.append(np.einsum('nij,nj->ni',
+                                       self.stress(rest_positions[nodes]), outward))
+
+        self.node.addObject('ConstantForceField', name='traction', template=self.vec_type,
+                            indices=indices, forces=np.concatenate(tractions))
 
 
 class RegionClamp(Sofa.Core.Controller):

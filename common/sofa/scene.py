@@ -26,4 +26,4 @@ class SofaScene(ABC):
 
     def build(self, root):
         self.add_plugins(root)
-        self.body(root)
+        return self.body(root)

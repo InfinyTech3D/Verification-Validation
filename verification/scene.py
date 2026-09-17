@@ -59,8 +59,9 @@ class MMSScene(SofaScene):
 
         # Load the whole boundary with the traction that solution exerts there
         mechanical.addObject(ApplyManufacturedTraction(
-            node=mechanical, dofs=mechanical.dofs, stress=self.manufactured_problem.stress,
-            vec_type=VEC, element=self.element,
+            geometry=self.geometry, node=mechanical, dofs=mechanical.dofs,
+            stress=self.manufactured_problem.stress,
+            vec_type=VEC, element=self.element, spatial_dimensions=spatial_dimensions,
             quadrature_degree=self.source_quadrature_degree, name='tractionCtrl'))
 
         # Clamp the mesh dofs by region as determined by the manufactured solution BCs

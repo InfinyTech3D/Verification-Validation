@@ -56,6 +56,7 @@ class ScenePrefab(Sofa.Prefab):
 
         # ODE Integration Scheme
         integration_sceme = params(config['integration'])
+        integration_sceme['linearSolver'] = '@linearSolver'
         if newtonDict is not None:
             integration_sceme['newtonSolver'] = '@newton'
         node.addObject(config['integration']['type'], name='ode', **integration_sceme)
