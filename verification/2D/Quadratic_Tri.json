@@ -17,6 +17,6 @@
   "asymptoticTolerance": 0.10,
   "expectedOrder": { "L2": 2.0, "H1": 1.0, "Enorm": 1.0 },
   "expectedOrderTolerance": 0.15,
-  "noiseFloorFraction": 1e-9,
+  "relativeNoiseFloor": 1e-12,
   "solution":    { "type": "Quadratic", "amplitude": 0.1 }
 }

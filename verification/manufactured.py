@@ -96,10 +96,8 @@ class ManufacturedProblem:
         The result, `evaluate(points)`, takes one point or a whole batch of points (shape
         (..., spatial_dimensions)) and returns the expression's value at each, shaped (*batch, *shape).
         """
-        # Each component is lambdified on its own.
         components = [sp.lambdify(list(self.coordinates), entry, "numpy") for entry in expression]
 
-        # The compiled field itself, returned to the caller as a plain callable.
         def compiled_field(points):
             points = np.asarray(points, dtype=float)
             batch = points.shape[:-1]

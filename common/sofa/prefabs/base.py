@@ -33,30 +33,30 @@ class ScenePrefab(Sofa.Prefab):
         """Newton (if present) + linear solver (+ preconditioner) + integration scheme."""
 
         # Newton Solver
-        newtonDict = config.get('newton')
-        if newtonDict is not None:
-            node.addObject(newtonDict['type'], name='newton', **params(newtonDict))
+        newton_config = config.get('newton')
+        if newton_config is not None:
+            node.addObject(newton_config['type'], name='newton', **params(newton_config))
 
         # Linear Solver & Preconditioner (optional)
-        linearDict = config['linearSolver']
-        precondDict = linearDict.get('preconditioner')
-        if precondDict is None:
-            node.addObject(linearDict['type'], name='linearSolver', **params(linearDict))
+        linear_config = config['linearSolver']
+        precond_config = linear_config.get('preconditioner')
+        if precond_config is None:
+            node.addObject(linear_config['type'], name='linearSolver', **params(linear_config))
         else:
-            precond_system_dict = precondDict['system']
-            node.addObject(precond_system_dict['type'], name='precondSystem', **params(precond_system_dict))
-            node.addObject(precondDict['type'], name='precond', linearSystem='@precondSystem',
-                           **params(precondDict, 'system'))
+            precond_system_config = precond_config['system']
+            node.addObject(precond_system_config['type'], name='precondSystem', **params(precond_system_config))
+            node.addObject(precond_config['type'], name='precond', linearSystem='@precondSystem',
+                           **params(precond_config, 'system'))
 
-            linear_system_dict = linearDict['system']
-            node.addObject(linear_system_dict['type'], name='solverSystem',
-                           preconditionerSystem='@precondSystem', **params(linear_system_dict))
-            node.addObject(linearDict['type'], name='linearSolver', linearSystem='@solverSystem',
-                           preconditioner='@precond', **params(linearDict, 'system', 'preconditioner'))
+            linear_system_config = linear_config['system']
+            node.addObject(linear_system_config['type'], name='solverSystem',
+                           preconditionerSystem='@precondSystem', **params(linear_system_config))
+            node.addObject(linear_config['type'], name='linearSolver', linearSystem='@solverSystem',
+                           preconditioner='@precond', **params(linear_config, 'system', 'preconditioner'))
 
         # ODE Integration Scheme
-        integration_sceme = params(config['integration'])
-        integration_sceme['linearSolver'] = '@linearSolver'
-        if newtonDict is not None:
-            integration_sceme['newtonSolver'] = '@newton'
-        node.addObject(config['integration']['type'], name='ode', **integration_sceme)
+        integration_scheme = params(config['integration'])
+        integration_scheme['linearSolver'] = '@linearSolver'
+        if newton_config is not None:
+            integration_scheme['newtonSolver'] = '@newton'
+        node.addObject(config['integration']['type'], name='ode', **integration_scheme)

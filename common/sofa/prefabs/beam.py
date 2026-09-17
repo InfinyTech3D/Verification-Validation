@@ -10,7 +10,7 @@ def validate_parameters(config):
 
     A beam is a 2D or 3D continuum domain (plane or solid elasticity).
     """
-    required = ['geometry', 'resolution', 'element']
+    required = ['geometry', 'grid_resolution', 'element']
     missing = [p for p in required if p not in config]
     if missing:
         raise ValueError(f"ElasticBeam: missing required parameters {missing}")
@@ -26,7 +26,7 @@ class ElasticBeam(ScenePrefab):
     """Prefab for an elastic beam model in SOFA."""
 
     prefabParameters = [
-        {'name': 'resolution', 'type': 'Vec3d',  'help': 'nodes per axis [nx, ny, nz]'},
+        {'name': 'grid_resolution', 'type': 'Vec3d',  'help': 'grid points per axis [nx, ny, nz]'},
         {'name': 'element',    'type': 'string', 'help': 'element kind (edge/tri/quad/tet/hexa)'},
     ]
 
@@ -39,13 +39,13 @@ class ElasticBeam(ScenePrefab):
         extents = list(self.geometry.parameters) + [0.0] * (3 - dim)
         VecType = VEC_DIM[self.geometry.spatial_dimensions]
         element_kind = ELEMENTS[self.element.value]
-        res = list(self.resolution.value)[:dim] + [1] * (3 - dim)
+        grid_resolution = list(self.grid_resolution.value)[:dim] + [1] * (3 - dim)
 
         # Grid Topology Node
         with self.addChild('Grid') as grid_node:
             grid_node.addObject('RegularGridTopology', name='grid',
-                                nx=int(res[0]), ny=int(res[1]), nz=int(res[2]),
-                                min=[0.0, 0.0, 0.0], max=extents)
+                                nx=int(grid_resolution[0]), ny=int(grid_resolution[1]),
+                                nz=int(grid_resolution[2]), min=[0.0, 0.0, 0.0], max=extents)
 
         # Node containing Beam components
         with self.addChild('Beam') as beam:
@@ -61,7 +61,7 @@ class ElasticBeam(ScenePrefab):
                 beam.addObject(element_kind.container.replace('Container', 'Modifier'))
             # DOFs
             beam.addObject('MechanicalObject', name='dofs', template=VecType)
-            # ForceField to test
+            # The force field under test.
             self.add_force_field(beam, self.configs['forceField'], self.configs['material'],
                                  template=f"{VecType},{element_kind.cpp}")
             # ODE & Linear Solvers

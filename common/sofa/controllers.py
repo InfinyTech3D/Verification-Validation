@@ -72,8 +72,8 @@ class ApplyManufacturedTraction(Sofa.Core.Controller):
 
         boundary_kind = ELEMENTS[mappings[-1][0]]
         if boundary_kind.dim + 1 != self.spatial_dimensions:
-            # TODO StressSourceTerm does not support elements of codimention 2. So we cannot apply
-            # traction BCs on Quad/Triangluar meshes in 3D. The Edge normals are arbitrary.
+            # TODO StressSourceTerm does not support elements of codimension 2. So we cannot apply
+            # traction BCs on Quad/Triangular meshes in 3D. The Edge normals are arbitrary.
             return
 
         # Goes from the volume to the boundary elements, applying one topological mapping at a time.
@@ -88,10 +88,10 @@ class ApplyManufacturedTraction(Sofa.Core.Controller):
         # Apply the nodal stress load on the boundary.
         template = f'{self.vec_type},{boundary_kind.cpp}'
         # The manufactured stress at every node, converted to the layout NodalStress takes.
-        stress = self.stress(rest_positions)
-        rows, columns = np.tril_indices(stress.shape[-1])
+        stress_values = self.stress(rest_positions)
+        rows, columns = np.tril_indices(stress_values.shape[-1])
         nodal_stress = boundary.addObject('NodalStress', name='stress', template=self.vec_type)
-        nodal_stress.property.value = np.ascontiguousarray(stress[:, rows, columns])
+        nodal_stress.property.value = np.ascontiguousarray(stress_values[:, rows, columns])
 
         boundary.addObject('StressSourceTerm', name='traction', template=template, stress='@stress')
         boundary.addObject('FEMSourceTermIntegrator', name='tractionSource', template=template,

@@ -25,7 +25,7 @@ class Measurement:
         self.u_exact = quadrature.sample(manufactured_problem.u)
         self.grad_exact = quadrature.sample(manufactured_problem.grad_u)
 
-        # u_error/grad_error are what a metric measures. 
+        # u_error/grad_error are what a metric measures.
         # u_exact/grad_exact (not the error) set its noise floor, computed through the same norm
         self.u_error = self.u_h - self.u_exact
         self.grad_error = self.grad_h - self.grad_exact
@@ -44,7 +44,7 @@ class Metric(ABC):
 
     @abstractmethod
     def scale(self, measurement):
-        """Reference magnitude the noise floor (noiseFloorFraction * this) is taken against:
+        """Reference magnitude the noise floor (relativeNoiseFloor * this) is taken against:
         the norms scale with the field, the energy metrics with the energy."""
 
 
@@ -57,10 +57,10 @@ class L2(Metric):
     name = "L2"
 
     def measure(self, measurement):
-        return measurement.quadrature.l2(measurement.u_error)
+        return measurement.quadrature.L2Norm(measurement.u_error)
 
     def scale(self, measurement):
-        return measurement.quadrature.l2(measurement.u_exact)
+        return measurement.quadrature.L2Norm(measurement.u_exact)
 
 
 class H1(Metric):
@@ -72,10 +72,10 @@ class H1(Metric):
     name = "H1"
 
     def measure(self, measurement):
-        return measurement.quadrature.frobenius(measurement.grad_error)
+        return measurement.quadrature.FrobeniusNorm(measurement.grad_error)
 
     def scale(self, measurement):
-        return measurement.quadrature.frobenius(measurement.grad_exact)
+        return measurement.quadrature.FrobeniusNorm(measurement.grad_exact)
 
 
 class EnergyNorm(Metric):

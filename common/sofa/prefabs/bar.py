@@ -7,7 +7,7 @@ from ...geometry import Bar1D
 
 def validate_parameters(config):
     """Required ElasticBar parameters."""
-    required = ['geometry', 'resolution', 'element']
+    required = ['geometry', 'grid_resolution', 'element']
     missing = [p for p in required if p not in config]
     if missing:
         raise ValueError(f"ElasticBar: missing required parameters {missing}")
@@ -22,7 +22,7 @@ class ElasticBar(ScenePrefab):
     """Prefab for an elastic bar model in SOFA."""
 
     prefabParameters = [
-        {'name': 'resolution', 'type': 'int',    'help': 'nodes along the bar'},
+        {'name': 'grid_resolution', 'type': 'int',    'help': 'grid points along the bar'},
         {'name': 'element',    'type': 'string', 'help': "element kind, must be 'edge'"},
     ]
 
@@ -37,7 +37,7 @@ class ElasticBar(ScenePrefab):
         # Grid Topology Node
         with self.addChild('Grid') as grid_node:
             grid_node.addObject('RegularGridTopology', name='grid',
-                                nx=int(self.resolution.value), ny=1, nz=1,
+                                nx=int(self.grid_resolution.value), ny=1, nz=1,
                                 min=[0.0, 0.0, 0.0], max=[self.geometry.length, 0.0, 0.0])
 
         # Node containing Bar components

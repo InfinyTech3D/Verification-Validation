@@ -28,16 +28,23 @@ class MMSScene(SofaScene):
         "Sofa.Component.Topology.Mapping",
     ]
 
-    def __init__(self, deck, resolution):
+    def __init__(self, deck, cells):
+        """One mesh of the deck, `cells` counting its cells per axis."""
         super().__init__()
+        self.cells = cells
         self.geometry = deck.geometry
         self.material = deck.material
         self.force_field = deck.force_field
         self.element = deck.element
-        self.resolution = resolution
         self.solvers = deck.solvers
         self.manufactured_problem = deck.manufactured_problem
         self.source_quadrature_degree = deck.source_quadrature_degree
+
+    @property
+    def grid_resolution(self):
+        """The grid resolution of `RegularGridTopology`, which is its `n` Data."""
+        grid_resolution = [count + 1 for count in self.cells]
+        return grid_resolution[0] if len(grid_resolution) == 1 else grid_resolution
 
     def body(self, root):
         root.addObject('DefaultAnimationLoop')
@@ -45,7 +52,7 @@ class MMSScene(SofaScene):
         prefab_cls = PREFAB_BY_GEOMETRY[type(self.geometry)]
         configs = {'material': self.material, 'forceField': self.force_field, 'solvers': self.solvers}
         prefab = root.addChild(prefab_cls(name=prefab_cls.__name__, geometry=self.geometry,
-                                          resolution=self.resolution, element=self.element, configs=configs))
+                                          grid_resolution=self.grid_resolution, element=self.element, configs=configs))
         mechanical = prefab.mechanical_node()
 
         dim, spatial_dimensions = self.geometry.dim, self.geometry.spatial_dimensions

@@ -9,10 +9,10 @@ from .manufactured import ManufacturedProblem
 from .metrics import METRICS
 from .registry import MANUFACTURED_SOLUTIONS, GEOMETRIES, MATERIALS
 
-# Required keyes for all decks. A missing key is an omission, an unknown key is a typo.
+# Required keys for all decks. A missing key is an omission, an unknown key is a typo.
 REQUIRED = {"geometry", "element", "solution", "material", "forceField",
             "quadratureDegree", "sourceQuadratureDegree", "solvers", "mesh",
-            "asymptoticTolerance", "expectedOrder", "expectedOrderTolerance", "noiseFloorFraction"}
+            "asymptoticTolerance", "expectedOrder", "expectedOrderTolerance", "relativeNoiseFloor"}
 
 MESH_KEYS = {"cells", "levels", "refinementRatio"}
 
@@ -109,7 +109,7 @@ class Deck:
         geometry_config = dict(config["geometry"])
         self.geometry = GEOMETRIES[geometry_config.pop("type")](**geometry_config)
 
-        # ManufacturedSolution Class. Keyed on the geometry's topological dimension.
+        # Keyed on the geometry's topological dimension.
         solution = MANUFACTURED_SOLUTIONS[(self.geometry.dim, config["solution"]["type"])](
             config["solution"], self.geometry)
 
@@ -128,7 +128,7 @@ class Deck:
         self.asymptotic_tolerance = config["asymptoticTolerance"]
         self.expected_order = config["expectedOrder"]
         self.expected_order_tolerance = config["expectedOrderTolerance"]
-        self.noise_floor_fraction = config["noiseFloorFraction"]
+        self.relative_noise_floor = config["relativeNoiseFloor"]
 
     @classmethod
     def load(cls, path):

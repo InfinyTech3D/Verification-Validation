@@ -21,7 +21,6 @@ class MeshQuadrature:
         # Reference-space data is identical for every element of this type, so fetch it once.
         reference_weights, self.shape_functions, reference_gradients = \
             Sofa.SofaFEM.quadrature_data(element, dim, degree)
-        # Get the physical space mapping data for all elements in a batch
         self.shape_function_gradients, measures = Sofa.SofaFEM.element_mapping_batch(
             element, self.nodes, self.node_indices, reference_gradients)
 
@@ -46,11 +45,11 @@ class MeshQuadrature:
         """A manufactured field at every quadrature point: the one seam where it meets this mesh."""
         return field(self.points)
 
-    def l2(self, values):
+    def L2Norm(self, values):
         """L2 norm of a vector field given at every quadrature point: (e, q, c) -> scalar."""
         return float(np.sqrt(self.integrate(np.sum(values * values, axis=-1))))
 
-    def frobenius(self, tensors):
+    def FrobeniusNorm(self, tensors):
         """L2 norm of a tensor field, Frobenius over its last two axes: (e, q, c, d) -> scalar."""
         return float(np.sqrt(self.integrate(np.sum(tensors * tensors, axis=(-2, -1)))))
 

@@ -1,8 +1,8 @@
 {
-  "geometry":    { "type": "Bar1D", "length": 2.0 },
-  "element":     "edge",
+  "geometry":    { "type": "Beam2D", "length": 1.0, "width": 1.0 },
+  "element":     "quad",
   "quadratureDegree": 3,
-  "sourceQuadratureDegree": 2,
+  "sourceQuadratureDegree": 3,
   "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
   "forceField":  { "type": "LinearSmallStrainFEMForceField" },
   "solvers": {
@@ -13,10 +13,10 @@
                       "absoluteResidualStoppingThreshold": 0 },
     "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
   },
-  "mesh":        { "cells": [3], "levels": 7, "refinementRatio": 2 },
+  "mesh":        { "cells": [3, 3], "levels": 6, "refinementRatio": 2 },
   "asymptoticTolerance": 0.10,
   "expectedOrder": { "L2": 2.0, "H1": 1.0, "Enorm": 1.0 },
   "expectedOrderTolerance": 0.15,
-  "noiseFloorFraction": 1e-9,
-  "solution":    { "type": "Quadratic", "amplitude": 0.1 }
+  "relativeNoiseFloor": 1e-12,
+  "solution":    { "type": "Trigonometric", "amplitude": 0.1 }
 }
