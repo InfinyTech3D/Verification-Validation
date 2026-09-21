@@ -43,8 +43,7 @@ class MMSScene(SofaScene):
     @property
     def grid_resolution(self):
         """The grid resolution of `RegularGridTopology`, which is its `n` Data."""
-        grid_resolution = [count + 1 for count in self.cells]
-        return grid_resolution[0] if len(grid_resolution) == 1 else grid_resolution
+        return [count + 1 for count in self.cells]
 
     def body(self, root):
         root.addObject('DefaultAnimationLoop')

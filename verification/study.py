@@ -72,6 +72,21 @@ def _paint(cell, accepted):
     return f"{GREEN if accepted else RED}{cell}{RESET}"
 
 
+def _mesh_spacing(quadrature, dim):
+    """This mesh's step size h: the representative element size, the `dim`-th root of the mean
+    element measure. `dim` is the element's own dimension, so an embedded mesh divides its area,
+    not a volume.
+
+    A mean, not the largest element diameter: the error norms are global, so one worst element
+    should not set the h they are plotted against, and on a swept mesh a diameter does not halve
+    cleanly under refinement even when every cell does. The refinement factor it yields between
+    two levels is (N_coarse / N_fine) raised to 1/dim, which is what the convergence literature
+    uses where there is no single grid spacing to quote. Measured off the built mesh, so a loaded
+    one needs no cell counts to state it.
+    """
+    return float((np.sum(quadrature.weights) / len(quadrature.node_indices)) ** (1.0 / dim))
+
+
 def _mesh_label(cells):
     """This mesh's cell count per axis as text, e.g. [24, 24] -> "24x24"."""
     return 'x'.join(str(count) for count in cells)
@@ -156,33 +171,33 @@ class ErrorConvergenceStudy:
         """Solve every mesh in the deck's refinement sequence, then evaluate and report the results."""
         mesh_refinement_levels = self.deck.levels()
         try:
-            for index, (cells, spacing) in enumerate(mesh_refinement_levels, start=1):
+            for index, cells in enumerate(mesh_refinement_levels, start=1):
                 _print_progress_bar(index, len(mesh_refinement_levels), _mesh_label(cells))
-                self.solve(cells, spacing)
+                self.solve(cells)
         finally:
             _clear_progress_bar()
         self.evaluate_metrics()
         self.plot()
         self.report()
 
-    def solve(self, cells, spacing):
+    def solve(self, cells):
         """Build and solve one mesh's SOFA scene, then measure and add it as the next level.
 
-        `cells` is that mesh's cell count per axis and `spacing` is its step size.
+        `cells` is that mesh's cell count per axis.
         """
         root = Sofa.Core.Node("root")
         mechanical = MMSScene(self.deck, cells).build(root).mechanical_node()
         Sofa.Simulation.init(root)
         Sofa.Simulation.animate(root, root.dt.value)
 
-        self.measure(mechanical, _mesh_label(cells), spacing)
+        self.measure(mechanical, _mesh_label(cells))
 
         Sofa.Simulation.unload(root)
 
-    def measure(self, mechanical, label, spacing):
+    def measure(self, mechanical, label):
         """Measure an already-solved mesh, then add it as the next level.
 
-        `mechanical` is that mesh's mechanical node, `label` names it and `spacing` is its step size.
+        `mechanical` is that mesh's mechanical node and `label` names it.
         """
         element_kind = ELEMENTS[self.deck.element]
         nodes = mechanical.dofs.rest_position.array()
@@ -194,7 +209,7 @@ class ErrorConvergenceStudy:
         measurement = Measurement(quadrature, u_h, self.deck.manufactured_problem)
 
         level = MeshRefinementLevelResult(
-            label=label, spacing=spacing,
+            label=label, spacing=_mesh_spacing(quadrature, element_kind.dim),
             # The element count the mapping actually produced, since the deck states cells: one row
             # of node_indices per element, so 6x the cells for tetrahedra and 2x for triangles.
             elements_count=len(node_indices),

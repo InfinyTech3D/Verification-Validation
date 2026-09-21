@@ -141,18 +141,7 @@ class Deck:
         return self.manufactured_problem.equation
 
     def levels(self):
-        """Grid cells per axis and mesh spacing per level, coarsest first.
-
-        Refinement is at a fixed ratio on every axis, so there's no per-level list to drift.
-        Cells, not elements: the deck controls what `RegularGridTopology` lays down, and the
-        topology mappings split each cell by a fixed factor across levels, so `h` (the largest
-        cell diameter) stays the honest mesh parameter for a convergence rate.
-        """
+        """Cells per axis at each refinement level, coarsest first."""
         ratio = self.mesh["refinementRatio"]
-        sweep = []
-        for level in range(self.mesh["levels"]):
-            cells = [count * ratio ** level for count in self.mesh["cells"]]
-            spacing = max(extent / count
-                          for extent, count in zip(self.geometry.parameters, cells))
-            sweep.append((cells, spacing))
-        return sweep
+        return [[count * ratio ** level for count in self.mesh["cells"]]
+                for level in range(self.mesh["levels"])]

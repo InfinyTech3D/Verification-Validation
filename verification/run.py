@@ -81,7 +81,7 @@ def createScene(root):
     if len(sys.argv) != 3:
         sys.exit("run.py under runSofa expects: --argv <deck> --argv <level>")
     deck = Deck.load(resolve_path(sys.argv[1]))
-    cells, _ = deck.levels()[int(sys.argv[2])]
+    cells = deck.levels()[int(sys.argv[2])]
 
     # Add VisualStyle
     root.addObject('RequiredPlugin', name='visual', pluginName=["Sofa.Component.Visual"])

@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import sympy as sp
 
-from .materials import compile_laws
+from ..materials import compile_laws
 
 _COORDINATES = sp.symbols("x y z")
 
@@ -20,14 +20,22 @@ class ManufacturedSolution(ABC):
     Stated without reference to a material; `ManufacturedProblem` pairs the two.
     """
 
+    geometry: type                    # the geometry family this solution is stated on
+    dim: int                          # the PDE's own dimension, not the space it is solved in
     prescribe_displacement_on = {}    # {region: fixed_directions} where u is prescribed
     traction_on = ()                  # regions where the derived traction is applied
 
     def __init__(self, config, geometry):
+        if not isinstance(geometry, self.geometry):
+            raise ValueError(f"{type(self).__name__} is stated on a {self.geometry.__name__}, "
+                             f"got a {type(geometry).__name__}")
+        if geometry.dim != self.dim:
+            raise ValueError(f"{type(self).__name__} is {self.dim}D, "
+                             f"got a {geometry.dim}D {type(geometry).__name__}")
+
         self.config = config                        # the deck's "solution" block; a subclass may read more from it
         self.amplitude = config["amplitude"]        # too large relative to the geometry inverts elements
         self.parameters = geometry.named_parameters
-        self.dim = geometry.dim
 
     @abstractmethod
     def displacement(self, coordinates):
@@ -110,81 +118,3 @@ class ManufacturedProblem:
 
         return compiled_field
 
-
-# --- The solutions themselves, one class per deck "solution"; registry.py keys them by (dim, name). ---
-
-class Quadratic1D(ManufacturedSolution):
-    """u(x) = [A x^2]: body force constant, so the nodal source is the source; clamped at 'left'."""
-
-    prescribe_displacement_on = {"left": [1]}
-    traction_on = ("right",)
-
-    def displacement(self, coordinates):
-        return [self.amplitude * coordinates[0] ** 2]
-
-
-class Quadratic2D(ManufacturedSolution):
-    """u(x, y) = [A x^2, A y^2]
-
-    Body force constant and traction linear, so both are nodally exact.
-    """
-
-    # Each face prescribes only the component that is constant on it -- u_x on the x-faces is
-    # A x^2 at fixed x -- so the nodal values carry the Dirichlet data without error either.
-    prescribe_displacement_on = {"left": [1, 0], "right": [1, 0], "bottom": [0, 1], "top": [0, 1]}
-    traction_on = ("left", "right", "bottom", "top")
-
-    def displacement(self, coordinates):
-        x, y = coordinates[0], coordinates[1]
-        return [self.amplitude * x**2, self.amplitude * y**2]
-
-
-class Trigonometric1D(ManufacturedSolution):
-    """u(x) = [A sin(k x)], k = 2 pi / L: prescribed (clamped) at 'left', traction at 'right'."""
-
-    prescribe_displacement_on = {"left": [1]}
-    traction_on = ("right",)
-
-    def displacement(self, coordinates):
-        return [self.amplitude * sp.sin(self.wavenumber("length") * coordinates[0])]
-
-
-class Trigonometric2D(ManufacturedSolution):
-    """u(x, y) = [A sin(kx x) cos(ky y),
-                 A cos(kx x) sin(ky y)]
-    kx = 2 pi / L, ky = 2 pi / W
-
-    u_x fixed on x-faces, u_y fixed on y-faces, traction elsewhere.
-    """
-
-    prescribe_displacement_on = {"left": [1, 0], "right": [1, 0], "bottom": [0, 1], "top": [0, 1]}
-    traction_on = ("left", "right", "bottom", "top")
-
-    def displacement(self, coordinates):
-        kx, ky = self.wavenumber("length"), self.wavenumber("width")
-        x, y = coordinates[0], coordinates[1]
-        return [self.amplitude * sp.sin(kx * x) * sp.cos(ky * y),
-                self.amplitude * sp.cos(kx * x) * sp.sin(ky * y)]
-
-
-class Trigonometric3D(ManufacturedSolution):
-    """u(x, y, z) = [A sin(kx x) cos(ky y) cos(kz z),
-                    A cos(kx x) sin(ky y) cos(kz z),
-                    A cos(kx x) cos(ky y) sin(kz z)]
-    kx = 2 pi / L, ky = 2 pi / W, kz = 2 pi / H
-
-    Each component fixed on its own pair of faces, traction elsewhere.
-    """
-
-    prescribe_displacement_on = {"left": [1, 0, 0], "right": [1, 0, 0],
-                                 "bottom": [0, 1, 0], "top": [0, 1, 0],
-                                 "front": [0, 0, 1], "back": [0, 0, 1]}
-    traction_on = ("left", "right", "bottom", "top", "front", "back")
-
-    def displacement(self, coordinates):
-        kx, ky, kz = (self.wavenumber("length"), self.wavenumber("width"),
-                      self.wavenumber("height"))
-        x, y, z = coordinates
-        return [self.amplitude * sp.sin(kx * x) * sp.cos(ky * y) * sp.cos(kz * z),
-                self.amplitude * sp.cos(kx * x) * sp.sin(ky * y) * sp.cos(kz * z),
-                self.amplitude * sp.cos(kx * x) * sp.cos(ky * y) * sp.sin(kz * z)]

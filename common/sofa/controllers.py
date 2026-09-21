@@ -8,16 +8,6 @@ import Sofa.Core
 from .conventions import ELEMENTS
 
 
-def region_indices(geometry, region, nodes):
-    """Node indices whose coordinate satisfies the geometry's named-region predicate."""
-    predicate = geometry.boundary_regions[region]
-    indices = []
-    for index, point in enumerate(nodes):
-        if predicate(point):
-            indices.append(index)
-    return indices
-
-
 class ApplyManufacturedSourceTerm(Sofa.Core.Controller):
     """Loads a mesh with the body force a manufactured solution puts on the right-hand side."""
 
@@ -78,12 +68,12 @@ class ApplyManufacturedTraction(Sofa.Core.Controller):
 
         # Goes from the volume to the boundary elements, applying one topological mapping at a time.
         boundary = self.node
-        for kind, mapping, data in mappings:
+        for kind, mapping in mappings:
             element_kind = ELEMENTS[kind]
             boundary = boundary.addChild(kind)
             boundary.addObject(element_kind.container, name='topology')
             boundary.addObject(element_kind.container.replace('Container', 'Modifier'))
-            boundary.addObject(mapping, input='@../topology', output='@topology', **data)
+            boundary.addObject(mapping, input='@../topology', output='@topology')
 
         # Apply the nodal stress load on the boundary.
         template = f'{self.vec_type},{boundary_kind.cpp}'
@@ -102,8 +92,8 @@ class ApplyManufacturedTraction(Sofa.Core.Controller):
         """The nodal traction on every boundary region, its normal pointing away from the mesh."""
         centre = rest_positions.mean(axis=0)
         indices, tractions = [], []
-        for region in self.geometry.boundary_regions:
-            nodes = region_indices(self.geometry, region, rest_positions)
+        for region in self.geometry.region_names:
+            nodes = self.geometry.region_indices(region, rest_positions)
             outward = rest_positions[nodes] - centre
             outward /= np.linalg.norm(outward, axis=-1, keepdims=True)
 
@@ -147,7 +137,7 @@ class RegionClamp(Sofa.Core.Controller):
         # Apply non-zero Dirichlet BC: Move each fixed direction to rest + u; rest_position is untouched.
         with self.dofs.position.writeableArray() as pos:
             for region, fixed_directions, constraint in self.region_constraints:
-                indices = region_indices(self.geometry, region, rest_positions)
+                indices = self.geometry.region_indices(region, rest_positions)
 
                 if self.displacement is not None and indices:
                     displacement = self.displacement(rest_positions[indices])

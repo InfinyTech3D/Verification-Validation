@@ -15,7 +15,7 @@ class ElementKind:
     cpp: str                    # SOFA geometry name, for compound templates ("Vec3d,Hexahedron")
     facet_kind: str | None      # the kind of this element's own facets, None if it has none
     grid_mapping: str | None    # topological mapping generating it from the grid, None if grid-native
-    boundary_mappings: tuple    # (element kind, mapping, Data) steps from this element to its boundary
+    boundary_mappings: tuple    # (element kind, mapping) steps from this element to its boundary
 
 ELEMENTS = {
     "edge": ElementKind(dim=1, container="EdgeSetTopologyContainer",        data_name="edges",
@@ -23,18 +23,16 @@ ELEMENTS = {
                         boundary_mappings=()),
     "tri":  ElementKind(dim=2, container="TriangleSetTopologyContainer",    data_name="triangles",
                         cpp="Triangle",    facet_kind="edge", grid_mapping="Quad2TriangleTopologicalMapping",
-                        boundary_mappings=(("edge", "Triangle2EdgeTopologicalMapping", {}),)),
+                        boundary_mappings=(("edge", "Triangle2EdgeTopologicalMapping"),)),
     "quad": ElementKind(dim=2, container="QuadSetTopologyContainer",        data_name="quads",
                         cpp="Quad",        facet_kind="edge", grid_mapping=None,
                         # To arrive at a Quad2Edge map -> triangulate quads and then Tri2Edge
-                        boundary_mappings=(("tri", "Quad2TriangleTopologicalMapping", {}),
-                                           ("edge", "Triangle2EdgeTopologicalMapping", {}))),
+                        boundary_mappings=(("tri", "Quad2TriangleTopologicalMapping"),
+                                           ("edge", "Triangle2EdgeTopologicalMapping"))),
     "tet":  ElementKind(dim=3, container="TetrahedronSetTopologyContainer", data_name="tetrahedra",
                         cpp="Tetrahedron", facet_kind="tri",  grid_mapping="Hexa2TetraTopologicalMapping",
-                        boundary_mappings=(("tri", "Tetra2TriangleTopologicalMapping",
-                                            {"flipNormals": True}),)), # TODO Verify flipNormals is needed
+                        boundary_mappings=(("tri", "Tetra2TriangleTopologicalMapping"),)),
     "hexa": ElementKind(dim=3, container="HexahedronSetTopologyContainer",  data_name="hexahedra",
                         cpp="Hexahedron",  facet_kind="quad", grid_mapping=None,
-                        boundary_mappings=(("quad", "Hexa2QuadTopologicalMapping",
-                                            {"flipNormals": True}),)), # TODO Verify flipNormals is needed
+                        boundary_mappings=(("quad", "Hexa2QuadTopologicalMapping"),)),
 }
