@@ -6,6 +6,8 @@ import pathlib
 import sys
 import traceback
 
+import matplotlib.pyplot as plt
+
 # Make the plugin's packages importable when this file is run directly.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -13,8 +15,10 @@ from verification.deck import Deck
 from verification.scene import MMSScene
 from verification.study import ErrorConvergenceStudy, overview
 
-# This file's own directory, the verification package. Decks live in its <dim>D/ subdirectories.
+# This file's own directory, the verification package. Decks live one directory down, grouped by
+# the force field under test.
 VERIFICATION_ROOT = pathlib.Path(__file__).parent
+RESULTS_ROOT = VERIFICATION_ROOT / "results"
 
 
 def resolve_path(path):
@@ -29,7 +33,7 @@ def run_all(directory, args):
     Returns [(name, study)], the study being None where that deck raised.
     """
     results = []
-    for path in sorted(directory.glob("*D/*.json")):
+    for path in sorted(directory.glob("*/*.json")):
         name = f"{path.parent.name}/{path.stem}"
         print(f"\n--- {name} ---")
         try:
@@ -46,11 +50,25 @@ def run_all(directory, args):
 
 
 def run(deck_path):
-    """Load one deck and run its verification study."""
+    """Load one deck, run its verification study, and write the plots it produced to disk."""
     deck = Deck.load(deck_path)
     study = ErrorConvergenceStudy(deck)
     study.run()
+    write_plots(study, deck_path)
     return study
+
+
+def write_plots(study, deck_path):
+    """Save every figure in study.plots as <results root>/<deck's own path>_<plot name>.png."""
+    try:
+        relative = deck_path.resolve().relative_to(VERIFICATION_ROOT.resolve()).with_suffix("")
+    except ValueError:
+        relative = pathlib.Path(deck_path.stem)
+    directory = RESULTS_ROOT / relative.parent
+    directory.mkdir(parents=True, exist_ok=True)
+    for name, figure in study.plots.items():
+        figure.savefig(directory / f"{relative.name}_{name}.png")
+        plt.close(figure)
 
 
 def createScene(root):
@@ -83,7 +101,7 @@ def parse_arguments():
             Path to the single deck to run. ``None`` when ``--all`` was given instead. Taken
             relative to the verification root by ``resolve_path`` when it does not resolve as typed.
         all : bool
-            Run every deck under the ``<dim>D/`` subdirectories of the verification root. Mutually
+            Run every deck under the verification root's force-field subdirectories. Mutually
             exclusive with ``deck``, and exactly one of the two is always set.
         traceback : bool
             Print the full stack for a deck that raises under ``--all``. False by default, where
@@ -93,7 +111,7 @@ def parse_arguments():
     # Must choose either --all or pass the deck path
     which_decks = parser.add_mutually_exclusive_group(required=True)
     which_decks.add_argument("deck", nargs="?", help="path to a deck")
-    which_decks.add_argument("--all", action="store_true", help="every deck under <dim>D/")
+    which_decks.add_argument("--all", action="store_true", help="every deck under the verification root")
     parser.add_argument("--traceback", action="store_true",
                         help="full stack for a deck that raises under --all, which otherwise "
                              "reports one line so the remaining decks still run")

@@ -19,6 +19,13 @@ import sys
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib import colormaps
+from matplotlib.colors import to_hex
+from matplotlib.lines import Line2D
+from matplotlib.ticker import NullLocator
 import numpy as np
 
 import Sofa.Core
@@ -143,6 +150,7 @@ class ErrorConvergenceStudy:
         self.results = {}
         self.unconverged_levels = []
         self.verified = False
+        self.plots = {}
 
     def run(self):
         """Solve every mesh in the deck's refinement sequence, then evaluate and report the results."""
@@ -154,6 +162,7 @@ class ErrorConvergenceStudy:
         finally:
             _clear_progress_bar()
         self.evaluate_metrics()
+        self.plot()
         self.report()
 
     def solve(self, cells, spacing):
@@ -266,6 +275,74 @@ class ErrorConvergenceStudy:
 
         # A settled, passing order is not evidence of anything if the solve never converged.
         self.verified = not self.unconverged_levels and all(result.passed for result in self.results.values())
+
+    def plot(self):
+        """Build the convergence-rate figure into self.plots: error against mesh spacing, log-log,
+        one line per metric, its segments coloured by the verdict on the rate they carry."""
+        SURFACE, INK, INK_SOFT, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e8e7e3"
+        PLOT_ACCEPTED, PLOT_DISCARDED = to_hex(colormaps["Greens"](0.95)), to_hex(colormaps["Reds"](0.95))
+        METRIC_FILL = {"L2": INK, "H1": to_hex(colormaps["Blues"](0.72)), "Enorm": SURFACE}
+        ELEMENT_MARKER = {"edge": "o", "quad": "s", "hexa": "s", "tri": "^", "tet": "^"}
+
+        figure, axes = plt.subplots(figsize=(7.2, 4.8))
+        figure.patch.set_facecolor(SURFACE)
+        axes.set_facecolor(SURFACE)
+        axes.grid(True, color=GRID, linewidth=0.8)
+        axes.set_axisbelow(True)
+        for side in ("top", "right"):
+            axes.spines[side].set_visible(False)
+        for side in ("left", "bottom"):
+            axes.spines[side].set_color(GRID)
+        axes.tick_params(colors=INK_SOFT, labelsize=9)
+        axes.tick_params(which="minor", length=0)
+        axes.set_xscale("log")
+        axes.set_yscale("log")
+        axes.set_title(self.deck.equation, fontsize=11, color=INK, pad=12)
+        axes.text(0.02, 0.97, f"Element: {self.deck.element.capitalize()}", transform=axes.transAxes,
+                  ha="left", va="top", fontsize=11, color=INK)
+        axes.set_xlabel("mesh spacing h", fontsize=9, color=INK_SOFT)
+        axes.set_ylabel("Norm", fontsize=9, color=INK_SOFT)
+
+        marker = ELEMENT_MARKER.get(self.deck.element, "D")
+        spacings = [level.spacing for level in self.levels]
+        any_discarded = False
+        for metric in METRICS:
+            errors = [level.values[metric.name] for level in self.levels]
+            accepted_levels = self.results[metric.name].accepted_levels
+
+            for index in range(1, len(self.levels)):
+                kept = index - 1 in accepted_levels and index in accepted_levels
+                any_discarded |= not kept
+                axes.plot(spacings[index - 1:index + 1], errors[index - 1:index + 1],
+                          color=PLOT_ACCEPTED if kept else PLOT_DISCARDED, linewidth=2.0,
+                          solid_capstyle="round", zorder=3)
+            axes.plot(spacings, errors, linestyle="none", marker=marker, markersize=6,
+                      markerfacecolor=METRIC_FILL.get(metric.name, INK), markeredgecolor=INK_SOFT,
+                      markeredgewidth=1.2, zorder=4)
+            axes.annotate(metric.name, (spacings[0], errors[0]), textcoords="offset points",
+                          xytext=(9, 0), ha="left", va="center", fontsize=9, color=INK)
+
+            if len(self.levels) >= 2:
+                rate = self.levels[-1].rates[metric.name]
+                text = f"{rate.value:.2f}" if rate.value is not None else (rate.reason or "")
+                if text:
+                    anchor = ((spacings[-2] * spacings[-1]) ** 0.5, (errors[-2] * errors[-1]) ** 0.5)
+                    verdict = PLOT_ACCEPTED if len(self.levels) - 1 in accepted_levels else PLOT_DISCARDED
+                    axes.annotate(text, anchor, textcoords="offset points", xytext=(6, -8),
+                                  ha="left", va="top", fontsize=9, color=verdict)
+
+        axes.set_xlim(min(spacings) / 1.2, max(spacings) * 2.4)
+        axes.set_xticks(spacings)
+        axes.set_xticklabels([f"{spacing:.3g}" for spacing in spacings])
+        axes.xaxis.set_minor_locator(NullLocator())
+
+        if any_discarded:
+            axes.legend([Line2D([], [], color=PLOT_DISCARDED, linewidth=2.0)],
+                        ["pre-asymptotic regime"], loc="lower right", frameon=False, fontsize=9,
+                        handlelength=1.6, labelcolor=INK_SOFT)
+
+        figure.tight_layout()
+        self.plots = {"convergence": figure}
 
     def report(self):
         """Print one row per mesh refinement level, then the order each metric settled on."""
