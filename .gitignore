@@ -1,2 +1,5 @@
 # ignore cached bytecode-compiled python scene files
 *__pycache__/
+
+# a run's own output
+verification/results/
