@@ -49,7 +49,10 @@ class Metric(ABC):
 
 
 class L2(Metric):
-    """Root of the integrated squared error, e = u_h - u."""
+    """Root of the integrated squared error:
+
+        ‖e‖_L2 = √(∫ |e|² dΩ),   e = u_h - u
+    """
 
     name = "L2"
 
@@ -61,7 +64,10 @@ class L2(Metric):
 
 
 class H1(Metric):
-    """H1 semi-norm of the error: ‖∇e‖_F (Frobenius norm of the gradient), e = u_h - u."""
+    """H1 semi-norm of the error, the Frobenius norm of its gradient:
+
+        ‖e‖_H1 = √(∫ ‖∇e‖_F² dΩ),   e = u_h - u
+    """
 
     name = "H1"
 
