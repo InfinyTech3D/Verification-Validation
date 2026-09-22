@@ -1,6 +1,6 @@
 """SOFA prefabs: an elastic rectilinear structured grid in 1 to 3 dimensions, as a bar or a beam."""
 
-from .base import ScenePrefab
+from .base import ScenePrefab, params
 from ..conventions import VEC_DIM, ELEMENTS
 from ...geometry import Grid
 
@@ -62,7 +62,8 @@ class ElasticGrid(ScenePrefab):
                                **{element_kind.data_name: f'@../Grid/grid.{element_kind.data_name}'})
             else:
                 body.addObject(element_kind.container, name='topology', position='@../Grid/grid.position')
-                body.addObject(element_kind.grid_mapping, input='@../Grid/grid', output='@topology')
+                body.addObject(element_kind.grid_mapping, input='@../Grid/grid', output='@topology',
+                               **params(self.configs.get('gridMapping', {})))
                 body.addObject(element_kind.container.replace('Container', 'Modifier'))
             # DOFs
             body.addObject('MechanicalObject', name='dofs', template=VecType)

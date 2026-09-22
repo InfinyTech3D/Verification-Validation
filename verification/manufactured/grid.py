@@ -12,8 +12,6 @@ class Quadratic1D(ManufacturedSolution):
 
     geometry = Grid
     dim = 1
-    prescribe_displacement_on = {"left": [1]}
-    traction_on = ("right",)
 
     def displacement(self, coordinates):
         return [self.amplitude * coordinates[0] ** 2]
@@ -27,10 +25,6 @@ class Quadratic2D(ManufacturedSolution):
 
     geometry = Grid
     dim = 2
-    # Uncomment to prescribe Dirichlet BCs on all boundaries
-    # prescribe_displacement_on = {"left": [1, 0], "right": [1, 0], "bottom": [0, 1], "top": [0, 1]}
-    prescribe_displacement_on = {"left": [1, 0], "bottom": [0, 1]}
-    traction_on = ("left", "right", "bottom", "top")
 
     def displacement(self, coordinates):
         x, y = coordinates[0], coordinates[1]
@@ -45,8 +39,6 @@ class Quadratic3D(ManufacturedSolution):
 
     geometry = Grid
     dim = 3
-    prescribe_displacement_on = {"left": [1, 0, 0], "bottom": [0, 1, 0], "front": [0, 0, 1]}
-    traction_on = ("left", "right", "bottom", "top", "front", "back")
 
     def displacement(self, coordinates):
         x, y, z = coordinates
@@ -60,8 +52,6 @@ class Trigonometric1D(TrigonometricSolution):
 
     geometry = Grid
     dim = 1
-    prescribe_displacement_on = {"left": [1]}
-    traction_on = ("right",)
 
     def displacement(self, coordinates):
         return [self.amplitude * sp.sin(self.wavenumber("length") * coordinates[0])]
@@ -77,10 +67,6 @@ class Trigonometric2D(TrigonometricSolution):
 
     geometry = Grid
     dim = 2
-    # Uncomment to prescribe Dirichlet BCs on all boundaries
-    # prescribe_displacement_on = {"left": [1, 0], "right": [1, 0], "bottom": [0, 1], "top": [0, 1]}
-    prescribe_displacement_on = {"left": [1, 0], "bottom": [0, 1]}
-    traction_on = ("left", "right", "bottom", "top")
 
     def displacement(self, coordinates):
         kx, ky = self.wavenumber("length"), self.wavenumber("width")
@@ -100,12 +86,6 @@ class Trigonometric3D(TrigonometricSolution):
 
     geometry = Grid
     dim = 3
-    # Uncomment to prescribe Dirichlet BCs on all boundaries
-    # prescribe_displacement_on = {"left": [1, 0, 0], "right": [1, 0, 0],
-    #                              "bottom": [0, 1, 0], "top": [0, 1, 0],
-    #                              "front": [0, 0, 1], "back": [0, 0, 1]}
-    prescribe_displacement_on = {"left": [1, 0, 0], "bottom": [0, 1, 0], "front": [0, 0, 1]}
-    traction_on = ("left", "right", "bottom", "top", "front", "back")
 
     def displacement(self, coordinates):
         kx, ky, kz = (self.wavenumber("length"), self.wavenumber("width"),

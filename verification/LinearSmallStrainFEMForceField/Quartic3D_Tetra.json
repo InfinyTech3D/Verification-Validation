@@ -12,7 +12,7 @@
                       "relativeSuccessiveStoppingThreshold": 0,
                       "absoluteResidualStoppingThreshold": 0 },
     "linearSolver": {
-      "type": "PCGLinearSolver", "iterations": 1000, "tolerance": 1e-30,
+      "type": "PCGLinearSolver", "iterations": 1000, "tolerance": 1e-24,
       "system": { "type": "PreconditionedMatrixFreeSystem" },
       "preconditioner": {
         "type": "SSORPreconditioner",
@@ -20,10 +20,12 @@
       }
     }
   },
+  "gridMapping": { "swapping": true },
   "mesh":        { "cells": [2, 16, 2], "levels": 4, "refinementRatio": 2 },
   "asymptoticTolerance": 0.10,
   "expectedOrder": { "L2": 2.0, "H1": 1.0, "Enorm": 1.0 },
   "expectedOrderTolerance": 0.15,
   "relativeNoiseFloor": 1e-10,
+  "tractionOn":  { "front": [1, 1, 1], "back": [1, 1, 1] },
   "solution":    { "type": "Quartic", "amplitude": 1.0 }
 }

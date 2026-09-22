@@ -188,7 +188,9 @@ class ErrorConvergenceStudy:
         root = Sofa.Core.Node("root")
         mechanical = MMSScene(self.deck, cells).build(root).mechanical_node()
         Sofa.Simulation.init(root)
-        Sofa.Simulation.animate(root, root.dt.value)
+        # One static solve per excitation increment.
+        for _ in range(self.deck.excitation_steps_count):
+            Sofa.Simulation.animate(root, root.dt.value)
 
         self.measure(mechanical, _mesh_label(cells))
 

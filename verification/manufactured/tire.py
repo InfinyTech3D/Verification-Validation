@@ -16,8 +16,6 @@ class Quartic2D(ManufacturedSolution):
 
     geometry = Tire
     dim = 2
-    prescribe_displacement_on = {"inner": [1, 1]}
-    traction_on = ("outer",)
 
     def displacement(self, coordinates):
         x, y = coordinates[0], coordinates[1]
@@ -35,8 +33,6 @@ class Quartic3D(ManufacturedSolution):
 
     geometry = Tire
     dim = 3
-    prescribe_displacement_on = {"inner": [1, 1, 1], "outer": [1, 1, 1]}
-    traction_on = ("front", "back")
 
     def displacement(self, coordinates):
         x, y, z = coordinates
