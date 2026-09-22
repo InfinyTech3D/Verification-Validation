@@ -14,7 +14,6 @@ import numpy as np
 import ufl
 from dolfinx import default_scalar_type, fem, la, mesh
 from mpi4py import MPI
-from scipy.sparse.linalg import spsolve
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -22,12 +21,37 @@ from case import CELLS, FENICS_FILE, LENGTH, POISSON_RATIO, TRACTION, YOUNG_MODU
 
 LOADED_END = 1
 
+PETSC_OPTIONS = {'ksp_type': 'preonly', 'pc_type': 'lu'}
+
 
 def lame_parameters(dim):
     """SOFA's reduction of isotropic elasticity to `dim` dimensions (see LameParameters.h)."""
     mu = YOUNG_MODULUS / (2 * (1 + POISSON_RATIO))
     lame_lambda = YOUNG_MODULUS * POISSON_RATIO / ((1 + POISSON_RATIO) * (1 - (dim - 1) * POISSON_RATIO))
     return lame_lambda, mu
+
+
+def solve_with_petsc(a, L, bc):
+    from dolfinx.fem.petsc import LinearProblem
+
+    problem = LinearProblem(a, L, bcs=[bc], petsc_options_prefix='traction_bar',
+                            petsc_options=PETSC_OPTIONS)
+    solution = problem.solve()
+    if isinstance(solution, tuple):  # dolfinx >= 0.10: (uh, converged_reason, iterations)
+        solution = solution[0]
+    return solution.x.array
+
+
+def solve_with_scipy(a, L, bc):
+    from scipy.sparse.linalg import spsolve
+
+    A = fem.assemble_matrix(fem.form(a), bcs=[bc])
+    A.scatter_reverse()
+    b = fem.assemble_vector(fem.form(L))
+    fem.apply_lifting(b.array, [fem.form(a)], bcs=[[bc]])
+    b.scatter_reverse(la.InsertMode.add)
+    fem.set_bc(b.array, [bc])
+    return spsolve(A.to_scipy().tocsr(), b.array)
 
 
 def solve():
@@ -43,22 +67,18 @@ def solve():
     ds = ufl.Measure("ds", domain=domain, subdomain_data=facets)
 
     u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
-    a = fem.form(stiffness * ufl.inner(ufl.grad(u), ufl.grad(v)) * ufl.dx)
-    L = fem.form(load * v * ds(LOADED_END))
+    a = stiffness * ufl.inner(ufl.grad(u), ufl.grad(v)) * ufl.dx
+    L = load * v * ds(LOADED_END)
 
     clamped = fem.locate_dofs_geometrical(V, lambda x: np.isclose(x[0], 0.0))
     bc = fem.dirichletbc(default_scalar_type(0.0), clamped, V)
 
-    # Assembled and solved with scipy rather than through dolfinx.fem.petsc: the Windows
-    # dolfinx build carries no petsc4py, and these problems are small enough for a direct solve.
-    A = fem.assemble_matrix(a, bcs=[bc])
-    A.scatter_reverse()
-    b = fem.assemble_vector(L)
-    fem.apply_lifting(b.array, [a], bcs=[[bc]])
-    b.scatter_reverse(la.InsertMode.add)
-    fem.set_bc(b.array, [bc])
-
-    solution = spsolve(A.to_scipy().tocsr(), b.array)
+    # Not every dolfinx build ships petsc4py; these problems are small enough that assembling
+    # to scipy and solving directly is an equivalent answer rather than a degraded one.
+    try:
+        solution = solve_with_petsc(a, L, bc)
+    except ImportError:
+        solution = solve_with_scipy(a, L, bc)
 
     x = V.tabulate_dof_coordinates()[:, 0]
     order = np.argsort(x)

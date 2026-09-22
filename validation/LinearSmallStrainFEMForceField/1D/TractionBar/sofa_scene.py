@@ -104,30 +104,27 @@ def compare(x, u):
 
     u_interp = np.interp(x_ref, x, u)
     scale = np.max(np.abs(u_ref)) or 1.0
-    error = np.abs(u_interp - u_ref) / scale
+    worst = np.max(np.abs(u_interp - u_ref)) / scale
 
     fine = np.linspace(0.0, LENGTH, 200)
-    figure, (top, bottom) = plt.subplots(2, 1, figsize=(7, 7), sharex=True,
-                                         gridspec_kw={'height_ratios': [3, 1]})
-    top.plot(fine, analytic_displacement(fine), 'k--', lw=1, label='analytic')
-    top.plot(x_ref, u_ref, '-', color='tab:blue', lw=2, alpha=.6, label='FEniCS')
-    top.plot(x, u, 'o', color='tab:red', ms=5, label='SOFA')
-    top.set_ylabel('axial displacement u(x)')
-    top.legend()
-    top.grid(alpha=.3)
-    top.set_title(f'1D traction bar, {CELLS} P1 elements, E={YOUNG_MODULUS:g}, F={TRACTION:g}')
-
-    bottom.semilogy(x_ref, np.maximum(error, 1e-18), 'o-', color='tab:purple', ms=4)
-    bottom.set_xlabel('x')
-    bottom.set_ylabel('|SOFA - FEniCS|\nrelative to max|u|')
-    bottom.grid(alpha=.3)
+    figure, axes = plt.subplots(figsize=(7, 5))
+    axes.plot(fine, analytic_displacement(fine), 'k--', lw=1, label='analytic')
+    axes.plot(x_ref, u_ref, 's', mfc='none', mec='tab:blue', ms=10, mew=1.5, label='FEniCS')
+    axes.plot(x, u, '+', color='tab:red', ms=10, mew=1.5, label='SOFA')
+    axes.set_xlabel('x')
+    axes.set_ylabel('axial displacement u(x)')
+    axes.set_title(f'1D traction bar, {CELLS} P1 elements, E={YOUNG_MODULUS:g}, F={TRACTION:g}')
+    axes.legend()
+    axes.grid(alpha=.3)
+    axes.annotate(f'max |SOFA - FEniCS| / max|u| = {worst:.2e}', xy=(.04, .88),
+                  xycoords='axes fraction', fontsize=9, color='dimgray')
 
     os.makedirs(RESULTS_DIR, exist_ok=True)
     plot_path = os.path.join(RESULTS_DIR, 'traction_bar.png')
     figure.tight_layout()
     figure.savefig(plot_path, dpi=150)
 
-    return error.max(), plot_path
+    return worst, plot_path
 
 
 def main():
