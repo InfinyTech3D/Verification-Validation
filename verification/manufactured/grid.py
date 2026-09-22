@@ -20,7 +20,7 @@ class Quadratic1D(ManufacturedSolution):
 
 
 class Quadratic2D(ManufacturedSolution):
-    """u(x, y) = [A x^2, A y^2]
+    """u(x, y) = [A (x^2 + x y), A (y^2 + x y)]
 
     Body force constant and traction linear, so both are nodally exact.
     """
@@ -34,7 +34,25 @@ class Quadratic2D(ManufacturedSolution):
 
     def displacement(self, coordinates):
         x, y = coordinates[0], coordinates[1]
-        return [self.amplitude * x**2, self.amplitude * y**2]
+        return [self.amplitude * (x**2 + x * y), self.amplitude * (y**2 + x * y)]
+
+
+class Quadratic3D(ManufacturedSolution):
+    """u(x, y, z) = [A (x^2 + x y + x z), A (y^2 + y z + x y), A (z^2 + z x + y z)]
+
+    Body force constant and traction linear, so both are nodally exact.
+    """
+
+    geometry = Grid
+    dim = 3
+    prescribe_displacement_on = {"left": [1, 0, 0], "bottom": [0, 1, 0], "front": [0, 0, 1]}
+    traction_on = ("left", "right", "bottom", "top", "front", "back")
+
+    def displacement(self, coordinates):
+        x, y, z = coordinates
+        return [self.amplitude * (x**2 + x * y + x * z),
+                self.amplitude * (y**2 + y * z + x * y),
+                self.amplitude * (z**2 + z * x + y * z)]
 
 
 class Trigonometric1D(TrigonometricSolution):

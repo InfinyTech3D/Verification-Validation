@@ -1,0 +1,29 @@
+{
+  "geometry":    { "type": "Beam3D", "length": 1.0, "width": 1.0, "height": 1.0 },
+  "element":     "tet",
+  "quadratureDegree": 2,
+  "sourceQuadratureDegree": 2,
+  "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
+  "forceField":  { "type": "LinearSmallStrainFEMForceField" },
+  "solvers": {
+    "integration":  { "type": "StaticSolver" },
+    "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 1,
+                      "relativeInitialStoppingThreshold": 1e-6,
+                      "relativeSuccessiveStoppingThreshold": 0,
+                      "absoluteResidualStoppingThreshold": 0 },
+    "linearSolver": {
+      "type": "PCGLinearSolver", "iterations": 1000, "tolerance": 1e-30,
+      "system": { "type": "PreconditionedMatrixFreeSystem" },
+      "preconditioner": {
+        "type": "SSORPreconditioner",
+        "system": { "type": "MatrixLinearSystem", "template": "CompressedRowSparseMatrixd" }
+      }
+    }
+  },
+  "mesh":        { "cells": [4, 4, 4], "levels": 5, "refinementRatio": 2 },
+  "asymptoticTolerance": 0.10,
+  "expectedOrder": { "L2": 2.0, "H1": 1.0, "Enorm": 1.0 },
+  "expectedOrderTolerance": 0.15,
+  "relativeNoiseFloor": 1e-10,
+  "solution":    { "type": "Quadratic", "amplitude": 0.1 }
+}
