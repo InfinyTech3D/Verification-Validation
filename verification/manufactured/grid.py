@@ -4,7 +4,7 @@ import sympy as sp
 
 from common.geometry import Grid
 
-from .base import ManufacturedSolution
+from .base import ManufacturedSolution, TrigonometricSolution
 
 
 class Quadratic1D(ManufacturedSolution):
@@ -37,7 +37,7 @@ class Quadratic2D(ManufacturedSolution):
         return [self.amplitude * x**2, self.amplitude * y**2]
 
 
-class Trigonometric1D(ManufacturedSolution):
+class Trigonometric1D(TrigonometricSolution):
     """u(x) = [A sin(k x)], k = 2 pi / L: prescribed (clamped) at 'left', traction at 'right'."""
 
     geometry = Grid
@@ -49,7 +49,7 @@ class Trigonometric1D(ManufacturedSolution):
         return [self.amplitude * sp.sin(self.wavenumber("length") * coordinates[0])]
 
 
-class Trigonometric2D(ManufacturedSolution):
+class Trigonometric2D(TrigonometricSolution):
     """u(x, y) = [A sin(kx x) cos(ky y),
                  A cos(kx x) sin(ky y)]
     kx = 2 pi / L, ky = 2 pi / W
@@ -71,7 +71,7 @@ class Trigonometric2D(ManufacturedSolution):
                 self.amplitude * sp.cos(kx * x) * sp.sin(ky * y)]
 
 
-class Trigonometric3D(ManufacturedSolution):
+class Trigonometric3D(TrigonometricSolution):
     """u(x, y, z) = [A sin(kx x) cos(ky y) cos(kz z),
                     A cos(kx x) sin(ky y) cos(kz z),
                     A cos(kx x) cos(ky y) sin(kz z)]

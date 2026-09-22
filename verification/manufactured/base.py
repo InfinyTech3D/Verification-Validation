@@ -41,10 +41,19 @@ class ManufacturedSolution(ABC):
     def displacement(self, coordinates):
         """Exact displacement as sympy expressions, one per component of this solution's own dimension."""
 
+
+class TrigonometricSolution(ManufacturedSolution):
+    """A solution built from sines and cosines fitted to the geometry's extent."""
+
+    def __init__(self, config, geometry):
+        super().__init__(config, geometry)
+        self.periods = config.get("periods", 1)     # more periods need a finer mesh to resolve
+
     def wavenumber(self, parameter):
-        """The wavenumber of one full period across one of the geometry's characteristic parameters.
-        e.g. 2 pi / length"""
-        return 2 * sp.pi / sp.Rational(str(self.parameters[parameter]))
+        """The wavenumber fitting `self.periods` full periods across one of the geometry's
+        characteristic parameters, e.g. 2 pi / length for a single period.
+        """
+        return 2 * sp.pi * sp.Rational(str(self.periods)) / sp.Rational(str(self.parameters[parameter]))
 
 
 class ManufacturedProblem:
