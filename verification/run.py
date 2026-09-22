@@ -98,8 +98,8 @@ def parse_arguments():
         clean : bool
             Delete what previous runs wrote before running.
         traceback : bool
-            Print the full stack for a deck that raises under ``--all``. False by default, where
-            such a deck reports one line instead so the remaining decks still run.
+            Whether a deck that raises under ``--all`` also prints its full stack trace. False by
+            default.
     """
     parser = argparse.ArgumentParser(description=__doc__)
     # Must choose either --all or pass the deck path
@@ -109,8 +109,7 @@ def parse_arguments():
     parser.add_argument("--clean", action="store_true",
                         help="delete the results of previous runs before running")
     parser.add_argument("--traceback", action="store_true",
-                        help="full stack for a deck that raises under --all, which otherwise "
-                             "reports one line so the remaining decks still run")
+                        help="full stack for a deck that raises under --all")
 
     arguments = parser.parse_args()
     if not (arguments.deck or arguments.all or arguments.clean):
