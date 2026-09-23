@@ -28,6 +28,10 @@ class Material(ABC):
     symbolic differentiation.
     """
 
+    # The name of the SOFA component implementing the material law
+    # None when no material component is used e.g. LinearSmallStrainFEMForceField
+    sofa_component_name = None
+
     @abstractmethod
     def energy_density(self, gradient):
         """psi(gradient): the strain energy density, an expression in `gradient`'s symbolic entries."""
@@ -96,4 +100,23 @@ class LinearElastic(Material):
 
     def energy_density(self, gradient):
         strain = (gradient + gradient.T) / 2
+        return self.lam * strain.trace() ** 2 / 2 + self.mu * sum(e ** 2 for e in strain)
+
+
+class SaintVenantKirchhoff(Material):
+    """psi = 1/2 lambda tr(E)^2 + mu E:E on the Green-Lagrange strain E = (F^T F - I) / 2, F = I + G.
+
+    Stores nothing under a rigid rotation, and tends to LinearElastic as the gradient goes to zero.
+    """
+
+    sofa_component_name = "StVenantKirchhoffMaterial"
+
+    def __init__(self, mu, lam):
+        self.mu = mu
+        self.lam = lam
+
+    def energy_density(self, gradient):
+        identity = sp.eye(gradient.rows)
+        deformation = identity + gradient
+        strain = (deformation.T * deformation - identity) / 2
         return self.lam * strain.trace() ** 2 / 2 + self.mu * sum(e ** 2 for e in strain)

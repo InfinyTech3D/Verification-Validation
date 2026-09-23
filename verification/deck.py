@@ -1,4 +1,4 @@
-"""The deck as one object: parsed, validated, and resolved into what a run needs."""
+"""The deck as one object: parsed, validated, and resolved into a config dictionary that a run needs."""
 
 import json
 import pathlib
@@ -10,6 +10,9 @@ from .metrics import METRICS
 from common.sofa.conventions import ELEMENTS
 
 from .registry import MANUFACTURED_SOLUTIONS, GEOMETRIES, MATERIALS
+
+# Path to the verification package root directory.
+VERIFICATION_ROOT = pathlib.Path(__file__).parent
 
 # Required keys for all decks. A missing key is an omission, an unknown key is a typo.
 REQUIRED = {"geometry", "element", "solution", "material", "forceField",
@@ -176,8 +179,12 @@ class Deck:
     def __init__(self, path, config):
         path = pathlib.Path(path)
 
-        # TODO Rework ugly naming convention
-        self.name = f"{path.parent.name}/{path.stem}"
+        # Extract root path and keep stem as the name of the deck.
+        stem = path.resolve().with_suffix("")
+        try:
+            self.name = stem.relative_to(VERIFICATION_ROOT.resolve()).as_posix()
+        except ValueError:
+            self.name = f"{path.parent.name}/{path.stem}"
         _validate(self.name, config)
 
         # Geometry Class
@@ -205,7 +212,8 @@ class Deck:
             self.geometry.spatial_dimensions, rotation)
 
         self.element = config["element"]
-        self.material = config["material"]
+        component = MATERIALS[config["material"]["type"]].sofa_component_name
+        self.material = config["material"] | ({"sofa_component_name": component} if component else {})
         self.force_field = config["forceField"]
         self.solvers = config["solvers"]
         self.mesh = config["mesh"]

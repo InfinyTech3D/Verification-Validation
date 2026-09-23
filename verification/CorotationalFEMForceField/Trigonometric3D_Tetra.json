@@ -15,9 +15,10 @@
                       "maxNbIterationsLineSearch": 5,
                       "relativeInitialStoppingThreshold": 1e-8,
                       "relativeSuccessiveStoppingThreshold": 0,
-                      "absoluteResidualStoppingThreshold": 0 },
+                      "absoluteResidualStoppingThreshold": 0,
+                      "printLog": false },
     "linearSolver": {
-      "type": "PCGLinearSolver", "iterations": 1000, "tolerance": 1e-24,
+      "type": "PCGLinearSolver", "iterations": 1000, "tolerance": 1e-24, "printLog": false,
       "system": { "type": "PreconditionedMatrixFreeSystem" },
       "preconditioner": {
         "type": "SSORPreconditioner",

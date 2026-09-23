@@ -1,14 +1,15 @@
 {
   "geometry":    { "type": "Beam3D", "length": 1.0, "width": 1.0, "height": 1.0 },
   "element":     "tet",
+  "excitationSteps": 1,
   "quadratureDegree": 2,
   "sourceQuadratureDegree": 2,
-  "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
-  "forceField":  { "type": "LinearSmallStrainFEMForceField" },
+  "material":    { "type": "SaintVenantKirchhoff", "youngModulus": 1e6, "poissonRatio": 0.3 },
+  "forceField":  { "type": "HyperelasticityFEMForceField" },
   "solvers": {
     "integration":  { "type": "StaticSolver" },
-    "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 1,
-                      "relativeInitialStoppingThreshold": 1e-6,
+    "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 10,
+                      "relativeInitialStoppingThreshold": 1e-8,
                       "relativeSuccessiveStoppingThreshold": 0,
                       "absoluteResidualStoppingThreshold": 0,
                       "printLog": false },
@@ -28,5 +29,5 @@
   "expectedOrderTolerance": 0.15,
   "relativeNoiseFloor": 1e-10,
   "tractionOn":  { "left": [0, 1, 1], "bottom": [1, 0, 1], "front": [1, 1, 0], "right": [1, 1, 1], "top": [1, 1, 1], "back": [1, 1, 1] },
-  "solution":    { "type": "Trigonometric", "amplitude": 0.1 }
+  "solution":    { "type": "Trigonometric", "amplitude": 0.01 }
 }

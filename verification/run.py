@@ -31,15 +31,16 @@ def run_all(directory, args):
 
     Returns [(name, study)], the study being None where that deck raised.
     """
-    TESTED_COMPONENTS = ("LinearSmallStrainFEMForceField", "CorotationalFEMForceField")
+    TESTED_COMPONENTS = ("LinearSmallStrainFEMForceField", "CorotationalFEMForceField",
+                         "HyperelasticityFEMForceField")
 
     results = []
     for component in TESTED_COMPONENTS:
         # A comparison reads a record an earlier deck wrote, so it goes last among its siblings.
-        decks = sorted(sorted((directory / component).glob("*.json")),
+        decks = sorted(sorted((directory / component).rglob("*.json")),
                        key=lambda path: "compareAgainst" in json.loads(path.read_text()))
         for path in decks:
-            name = f"{path.parent.name}/{path.stem}"
+            name = path.relative_to(directory).with_suffix("").as_posix()
             print(f"\n--- {name} ---")
             try:
                 results.append((name, run(path)))

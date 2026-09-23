@@ -24,10 +24,21 @@ class ScenePrefab(Sofa.Prefab):
     def mechanical_node(self):
         raise NotImplementedError
 
-    def add_force_field(self, node, config, material, template):
-        """The *FEMForceField component under test, its Data merged from `config` and `material`."""
+    def add_force_field(self, node, config, material, template, vec_template):
+        """The *FEMForceField component under test, its Data merged from `config` and `material`"""
+        component = material.get('sofa_component_name')
+
+        # *FEMForceField does not link to a material e.g. LinearSmallStrainFEMForceField
+        if component is None:
+            node.addObject(config['type'], name='fem', template=template, topology='@topology',
+                           **params(material), **params(config))
+            return
+
+        # *FEMForceField links to a material e.g. HyperelasticityFEMForceField
+        node.addObject(component, name='material', template=vec_template,
+                       **params(material, 'sofa_component_name'))
         node.addObject(config['type'], name='fem', template=template, topology='@topology',
-                       **params(material), **params(config))
+                       material='@material', **params(config))
 
     def add_solvers(self, node, config):
         """Newton (if present) + linear solver (+ preconditioner) + integration scheme."""

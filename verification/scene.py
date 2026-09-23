@@ -13,6 +13,7 @@ class MMSScene(SofaScene):
 
     plugins = [
         "Sofa.Component.SolidMechanics.FEM.Elastic",
+        "Sofa.Component.SolidMechanics.FEM.HyperElastic",
         "Sofa.Component.Constraint.Projective",
         "Sofa.Component.Engine.Select",
         "Sofa.Component.Mapping.Linear",
