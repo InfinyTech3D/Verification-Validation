@@ -21,6 +21,8 @@ OPTIONAL = {
         , "tractionOn"    # {region: directions} handed to the manufactured traction; the rest stay Dirichlet.
         , "rotation"      # a rigid rotation of the whole problem; its absence is the statement.
         , "gridMapping"   # Data for the mapping meshing the grid, where the element kind needs one.
+        , "compareAgainst"      # deck whose recorded errors this one must reproduce, level for level.
+        , "agreementTolerance"  # the largest relative difference from that record still counted as agreement.
 }
 
 MESH_KEYS = {"cells", "levels", "refinementRatio"}
@@ -107,6 +109,11 @@ def _validate(name, config):
     clash = (set(force_field) & set(material)) - {"type"}
     if clash:
         problems.append(f"forceField and material both state {sorted(clash)}: state them in material")
+
+    # Check that comparisonAgainst is paired with agreementTolerance
+    comparison = {"compareAgainst", "agreementTolerance"} & set(config)
+    if comparison and len(comparison) == 1:
+        problems.append(f"{sorted(comparison)[0]} needs the other of compareAgainst/agreementTolerance")
 
     # expectedOrder: one entry per registered metric, exactly.
     names = {metric.name for metric in METRICS}
@@ -210,6 +217,8 @@ class Deck:
         self.relative_noise_floor = config["relativeNoiseFloor"]
         self.excitation_steps_count = config.get("excitationSteps", 1)
         self.grid_mapping = config.get("gridMapping", {})
+        self.compare_against = config.get("compareAgainst")
+        self.agreement_tolerance = config.get("agreementTolerance")
 
     @classmethod
     def load(cls, path):

@@ -1,24 +1,22 @@
 """Runner for the verification suite: loads a deck and runs its verification study."""
 
 import argparse
+import json
 import os
 import pathlib
 import sys
 import traceback
-
-import matplotlib.pyplot as plt
 
 # Make the plugin's packages importable when this file is run directly.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from verification.deck import Deck
 from verification.scene import MMSScene
-from verification.study import ErrorConvergenceStudy, overview
+from verification.study import ErrorConvergenceStudy, NormAgreementStudy, overview
 
 # This file's own directory, the verification package. Decks live one directory down, grouped by
 # the force field under test.
 VERIFICATION_ROOT = pathlib.Path(__file__).parent
-RESULTS_ROOT = VERIFICATION_ROOT / "results"
 
 
 def resolve_path(path):
@@ -32,43 +30,36 @@ def run_all(directory, args):
 
     Returns [(name, study)], the study being None where that deck raised.
     """
+    TESTED_COMPONENTS = ("LinearSmallStrainFEMForceField", "CorotationalFEMForceField")
+
     results = []
-    for path in sorted(directory.glob("*/*.json")):
-        name = f"{path.parent.name}/{path.stem}"
-        print(f"\n--- {name} ---")
-        try:
-            results.append((name, run(path)))
-        except Exception as error:
-            # One broken deck should not stop the others.
-            print(f"  failed: {type(error).__name__}: {error}")
-            # Keep the traceback right below the deck that raised it.
-            if args.traceback:
-                traceback.print_exc(file=sys.stdout)
-            results.append((name, None))
+    for component in TESTED_COMPONENTS:
+        # A comparison reads a record an earlier deck wrote, so it goes last among its siblings.
+        decks = sorted(sorted((directory / component).glob("*.json")),
+                       key=lambda path: "compareAgainst" in json.loads(path.read_text()))
+        for path in decks:
+            name = f"{path.parent.name}/{path.stem}"
+            print(f"\n--- {name} ---")
+            try:
+                results.append((name, run(path)))
+            except Exception as error:
+                # One broken deck should not stop the others.
+                print(f"  failed: {type(error).__name__}: {error}")
+                # Keep the traceback right below the deck that raised it.
+                if args.traceback:
+                    traceback.print_exc(file=sys.stdout)
+                results.append((name, None))
     overview(results)
     return results
 
 
 def run(deck_path):
-    """Load one deck, run its verification study, and write the plots it produced to disk."""
+    """Load one deck, run its verification study, and write what it produced to disk."""
     deck = Deck.load(deck_path)
-    study = ErrorConvergenceStudy(deck)
+    study = NormAgreementStudy(deck) if deck.compare_against else ErrorConvergenceStudy(deck)
     study.run()
-    write_plots(study, deck_path)
+    study.write_results()
     return study
-
-
-def write_plots(study, deck_path):
-    """Save every figure in study.plots as <results root>/<deck's own path>_<plot name>.png."""
-    try:
-        relative = deck_path.resolve().relative_to(VERIFICATION_ROOT.resolve()).with_suffix("")
-    except ValueError:
-        relative = pathlib.Path(deck_path.stem)
-    directory = RESULTS_ROOT / relative.parent
-    directory.mkdir(parents=True, exist_ok=True)
-    for name, figure in study.plots.items():
-        figure.savefig(directory / f"{relative.name}_{name}.png")
-        plt.close(figure)
 
 
 def createScene(root):

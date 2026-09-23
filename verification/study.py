@@ -15,6 +15,8 @@ Stern, F., Wilson, R. V., Coleman, H. W. and Paterson, E. G. (2001). Comprehensi
     of Fluids Engineering, 123(4), 793-802.
 """
 
+import json
+import pathlib
 import sys
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -62,6 +64,19 @@ def _newton_diagnostics(newton):
             "reduction": reduction,
             "status": "Converged" if converged else status}
 
+
+# Where a run writes what it produced.
+RESULTS_ROOT = pathlib.Path(__file__).parent / "results"
+
+SURFACE, INK, INK_SOFT, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e8e7e3"
+PLOT_ACCEPTED, PLOT_DISCARDED = to_hex(colormaps["Greens"](0.95)), to_hex(colormaps["Reds"](0.95))
+METRIC_FILL = {"L2": INK, "H1": to_hex(colormaps["Blues"](0.72)), "Enorm": SURFACE}
+ELEMENT_MARKER = {"edge": "o", "quad": "s", "hexa": "s", "tri": "^", "tet": "^"}
+
+
+# Column widths shared by every table printed here.
+LABEL_WIDTH, SPACING_WIDTH, ELEMENTS_WIDTH = 16, 20, 17
+RATE_WIDTH, ITERATIONS_WIDTH, RESIDUAL_WIDTH = 13, 14, 12
 
 def _paint(cell, accepted):
     """Colour a cell green when the settling test kept its rate, red when it discarded it."""
@@ -148,6 +163,14 @@ class MetricResult:
     order: float | None     # the order at the finest settled mesh, or None if the order never settled
     accepted_levels: set    # level indices whose rate falls inside the settled range
     passed: bool            # whether `order` matches the deck's expected order, within tolerance
+
+
+@dataclass
+class AgreementResult:
+    """How closely one metric reproduced the record the deck is held against."""
+
+    differences: list       # |current - reference| / |reference| per level, coarsest first
+    passed: bool            # whether every one of them is within the deck's tolerance
 
 
 class ErrorConvergenceStudy:
@@ -254,7 +277,9 @@ class ErrorConvergenceStudy:
             # With 2 levels only the most that can be said is whether the error increased
             return ConvergenceRate(None, ConvergenceRate.FailureReason.DIV)
 
-        return ConvergenceRate(np.log(error / before) / np.log(current.spacing / previous.spacing))
+        # float(): the numpy scalar would reach the record, which json cannot write.
+        return ConvergenceRate(float(np.log(error / before)
+                                     / np.log(current.spacing / previous.spacing)))
 
     def evaluate_metrics(self):
         """Judge the settled order per metric, then conclude self.verified: did this deck verify?"""
@@ -277,8 +302,7 @@ class ErrorConvergenceStudy:
             if retained:
                 order = retained[-1][1]
                 accepted_levels = {index for index, _ in retained}
-                # bool(): the comparison is on a numpy float, so it yields a numpy bool -- which is
-                # not JSON-serializable, and would print as 1.0 wherever this gets recorded.
+                # bool(): the comparison is on a numpy float, so it yields a numpy bool
                 passed = bool(abs(order - self.expected_order[metric.name]) <= self.expected_order_tolerance)
             else:
                 order, accepted_levels, passed = None, set(), False
@@ -293,13 +317,34 @@ class ErrorConvergenceStudy:
         # A settled, passing order is not evidence of anything if the solve never converged.
         self.verified = not self.unconverged_levels and all(result.passed for result in self.results.values())
 
+    def write_results(self):
+        """Save the figures and the record under <results root>/<deck path>."""
+        path = RESULTS_ROOT / self.name
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        for name, figure in self.plots.items():
+            figure.savefig(f"{path}_{name}.png")
+            plt.close(figure)
+
+        pathlib.Path(f"{path}.json").write_text(json.dumps(self.record(), indent=2))
+
+    def record(self):
+        """Record of what this study measured."""
+        return {"deck": self.name,
+                "forceField": self.deck.force_field["type"],
+                "order": {metric.name: self.results[metric.name].order for metric in METRICS},
+                "levels": [{"label": level.label,
+                            "spacing": level.spacing,
+                            "elements": level.elements_count,
+                            "values": level.values,
+                            "rates": {metric.name: level.rates[metric.name].value
+                                      for metric in METRICS}}
+                           for level in self.levels]}
+
     def plot(self):
         """Build the convergence-rate figure into self.plots: error against mesh spacing, log-log,
         one line per metric, its segments coloured by the verdict on the rate they carry."""
-        SURFACE, INK, INK_SOFT, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e8e7e3"
-        PLOT_ACCEPTED, PLOT_DISCARDED = to_hex(colormaps["Greens"](0.95)), to_hex(colormaps["Reds"](0.95))
-        METRIC_FILL = {"L2": INK, "H1": to_hex(colormaps["Blues"](0.72)), "Enorm": SURFACE}
-        ELEMENT_MARKER = {"edge": "o", "quad": "s", "hexa": "s", "tri": "^", "tet": "^"}
+        spacings = [level.spacing for level in self.levels]
 
         figure, axes = plt.subplots(figsize=(7.2, 4.8))
         figure.patch.set_facecolor(SURFACE)
@@ -319,9 +364,12 @@ class ErrorConvergenceStudy:
                   ha="left", va="top", fontsize=11, color=INK)
         axes.set_xlabel("mesh spacing h", fontsize=9, color=INK_SOFT)
         axes.set_ylabel("Norm", fontsize=9, color=INK_SOFT)
+        axes.set_xlim(min(spacings) / 1.2, max(spacings) * 2.4)
+        axes.set_xticks(spacings)
+        axes.set_xticklabels([f"{spacing:.3g}" for spacing in spacings])
+        axes.xaxis.set_minor_locator(NullLocator())
 
         marker = ELEMENT_MARKER.get(self.deck.element, "D")
-        spacings = [level.spacing for level in self.levels]
         any_discarded = False
         for metric in METRICS:
             errors = [level.values[metric.name] for level in self.levels]
@@ -348,24 +396,17 @@ class ErrorConvergenceStudy:
                     axes.annotate(text, anchor, textcoords="offset points", xytext=(6, -8),
                                   ha="left", va="top", fontsize=9, color=verdict)
 
-        axes.set_xlim(min(spacings) / 1.2, max(spacings) * 2.4)
-        axes.set_xticks(spacings)
-        axes.set_xticklabels([f"{spacing:.3g}" for spacing in spacings])
-        axes.xaxis.set_minor_locator(NullLocator())
-
         if any_discarded:
-            axes.legend([Line2D([], [], color=PLOT_DISCARDED, linewidth=2.0)],
-                        ["pre-asymptotic regime"], loc="lower right", frameon=False, fontsize=9,
-                        handlelength=1.6, labelcolor=INK_SOFT)
+            # An empty labelled line, so a subclass redrawing this legend picks it up by itself.
+            axes.plot([], [], color=PLOT_DISCARDED, linewidth=2.0, label="pre-asymptotic regime")
+            axes.legend(loc="lower right", frameon=False, fontsize=9, handlelength=1.6,
+                        labelcolor=INK_SOFT)
 
         figure.tight_layout()
         self.plots = {"convergence": figure}
 
     def report(self):
         """Print one row per mesh refinement level, then the order each metric settled on."""
-        LABEL_WIDTH, SPACING_WIDTH, ELEMENTS_WIDTH = 16, 20, 17
-        RATE_WIDTH, ITERATIONS_WIDTH, RESIDUAL_WIDTH = 13, 14, 12
-
         header = (f"{'# cells/axis':>{LABEL_WIDTH}} {'mesh step size h':>{SPACING_WIDTH}}"
                   f" {'# of elements':>{ELEMENTS_WIDTH}}")
         for metric in METRICS:
@@ -412,13 +453,114 @@ class ErrorConvergenceStudy:
             print(f"  Newton did not converge at: {', '.join(self.unconverged_levels)}")
 
 
+class NormAgreementStudy(ErrorConvergenceStudy):
+    """A convergence study that must also reproduce a recorded run's errors, level for level.
+
+    E.g. CorotationalFEMForceField should reproduce LinearSmallStrainFEMForceField solution on
+    unrotated frame.
+    """
+
+    def __init__(self, deck):
+        super().__init__(deck)
+
+        # Check whether the reference results exist
+        path = RESULTS_ROOT / f"{deck.compare_against}.json"
+        if not path.exists():
+            raise FileNotFoundError(f"no record for {deck.compare_against}: run that deck before "
+                                    f"the one comparing to it")
+        self.reference = json.loads(path.read_text())
+        self.agreement_tolerance = deck.agreement_tolerance
+        self.agreement = {}
+
+    def evaluate_metrics(self):
+        """The convergence verdict, then the agreement, which this deck must also pass."""
+        super().evaluate_metrics()
+
+        current = [level.label for level in self.levels]
+        reference = [level["label"] for level in self.reference["levels"]]
+        if current != reference:
+            raise ValueError(f"{self.name}: compared against {self.reference['deck']} over "
+                             f"different meshes, {current} against {reference}")
+
+        self.agreement = {}
+        for metric in METRICS:
+            differences = [abs(level.values[metric.name] - other["values"][metric.name])
+                           / abs(other["values"][metric.name])
+                           for level, other in zip(self.levels, self.reference["levels"])]
+            # The claim is made at every level, so one level outside the tolerance sinks the metric.
+            self.agreement[metric.name] = AgreementResult(
+                differences=differences,
+                passed=all(difference <= self.agreement_tolerance for difference in differences))
+
+        self.verified = self.verified and all(result.passed for result in self.agreement.values())
+
+    def record(self):
+        """The base convergence record, plus agreement with reference solution."""
+        return {**super().record(),
+                "against": self.reference["deck"],
+                "agreementTolerance": self.agreement_tolerance,
+                "differences": {name: result.differences
+                                for name, result in self.agreement.items()}}
+
+    def plot(self):
+        """The convergence figure, ringing the reference's value at every level compared."""
+        super().plot()
+
+        figure = self.plots["convergence"]
+        axes = figure.axes[0]
+        spacings = [level.spacing for level in self.levels]
+        for metric in METRICS:
+            differences = self.agreement[metric.name].differences
+            for index, other in enumerate(self.reference["levels"]):
+                inside = differences[index] <= self.agreement_tolerance
+                axes.plot(spacings[index], other["values"][metric.name], marker="o", markersize=13,
+                          markerfacecolor="none", markeredgewidth=1.5,
+                          markeredgecolor=PLOT_ACCEPTED if inside else PLOT_DISCARDED, zorder=5)
+
+        agreed = all(result.passed for result in self.agreement.values())
+        axes.plot([], [], marker="o", markersize=13, markerfacecolor="none", markeredgewidth=1.5,
+                  markeredgecolor=PLOT_ACCEPTED if agreed else PLOT_DISCARDED, linestyle="none",
+                  label=f"within tolerance of {self.reference['forceField']}")
+        axes.legend(loc="lower right", frameon=False, fontsize=9, handlelength=1.6,
+                    labelcolor=INK_SOFT)
+        figure.tight_layout()
+
+    def report(self):
+        """The convergence table, then how closely this deck reproduced its reference."""
+        super().report()
+
+        print()
+        print(f"  agreement with {self.reference['deck']}")
+        header = f"{'# cells/axis':>{LABEL_WIDTH}} {'':>{SPACING_WIDTH}} {'':>{ELEMENTS_WIDTH}}"
+        for metric in METRICS:
+            header += f" {metric.name:>{RATE_WIDTH}}"
+        print(header)
+
+        blanks = f"{'':>{SPACING_WIDTH}} {'':>{ELEMENTS_WIDTH}}"
+        for index, level in enumerate(self.levels):
+            row = f"{level.label:>{LABEL_WIDTH}} {blanks}"
+            for metric in METRICS:
+                difference = self.agreement[metric.name].differences[index]
+                cell = f"{difference:>{RATE_WIDTH}.1e}"
+                row += f" {_paint(cell, difference <= self.agreement_tolerance)}"
+            print(row)
+
+        print()
+        print(f"{'tolerance':>{LABEL_WIDTH}} {blanks}"
+              + f" {self.agreement_tolerance:>{RATE_WIDTH}.1e}" * len(METRICS))
+
+
+# Whether a comparison deck reproduced the run it was held against, as its overview cell.
+AGREEMENT = {True: "ok", False: "bad"}
+
+
 def overview(results):
     """Print one line per deck: the order each metric settled on, and whether its solves converged."""
     print()
     header = f"{'deck':<44}"
     for metric in METRICS:
         header += f" {metric.name:>9}"
-    print(header + f" {'solver':>9}")
+    print(header + f" {'solver':>9} {'agreement':>9}")
 
     for name, study in results:
         row = f"{name:<44}"
@@ -429,4 +571,11 @@ def overview(results):
             row += f" {_paint(f'{cell:>9}', study is not None and metric_result.passed)}"
         solver = "error" if study is None else (
             "ok" if not study.unconverged_levels else f"{len(study.unconverged_levels)} bad")
-        print(row + f" {_paint(f'{solver:>9}', solver == 'ok')}")
+        row += f" {_paint(f'{solver:>9}', solver == 'ok')}"
+
+        # Only a comparison deck makes this claim; the rest leave the column empty.
+        agreement = getattr(study, "agreement", None)
+        if agreement:
+            agreed = all(result.passed for result in agreement.values())
+            row += f" {_paint(f'{AGREEMENT[agreed]:>9}', agreed)}"
+        print(row)

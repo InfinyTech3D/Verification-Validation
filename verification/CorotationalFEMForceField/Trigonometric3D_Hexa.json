@@ -1,5 +1,7 @@
 {
   "geometry":    { "type": "Beam3D", "length": 1.0, "width": 1.0, "height": 1.0 },
+  "compareAgainst": "LinearSmallStrainFEMForceField/Trigonometric3D_Hexa_Dirichlet",
+  "agreementTolerance": 1e-2,
   "element":     "hexa",
   "quadratureDegree": 3,
   "sourceQuadratureDegree": 3,

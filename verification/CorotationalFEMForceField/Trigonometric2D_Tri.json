@@ -1,5 +1,7 @@
 {
   "geometry":    { "type": "Beam2D", "length": 1.0, "width": 1.0 },
+  "compareAgainst": "LinearSmallStrainFEMForceField/Trigonometric2D_Tri_Dirichlet",
+  "agreementTolerance": 1e-2,
   "element":     "tri",
   "rotation":    { "angleDegrees": 45.0, "axis": "z" },
   "excitationSteps": 5,
