@@ -17,6 +17,7 @@ Stern, F., Wilson, R. V., Coleman, H. W. and Paterson, E. G. (2001). Comprehensi
 
 import json
 import pathlib
+import shutil
 import sys
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -68,15 +69,21 @@ def _newton_diagnostics(newton):
 # Where a run writes what it produced.
 RESULTS_ROOT = pathlib.Path(__file__).parent / "results"
 
+
+def clear_results():
+    """Delete everything previous runs wrote under the results root."""
+    shutil.rmtree(RESULTS_ROOT, ignore_errors=True)
+
 SURFACE, INK, INK_SOFT, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e8e7e3"
 PLOT_ACCEPTED, PLOT_DISCARDED = to_hex(colormaps["Greens"](0.95)), to_hex(colormaps["Reds"](0.95))
-METRIC_FILL = {"L2": INK, "H1": to_hex(colormaps["Blues"](0.72)), "Enorm": SURFACE}
+METRIC_FILL = {"L2": INK, "H1": to_hex(colormaps["Blues"](0.72)),
+               "EnergyDifference": SURFACE}
 ELEMENT_MARKER = {"edge": "o", "quad": "s", "hexa": "s", "tri": "^", "tet": "^"}
 
 
 # Column widths shared by every table printed here.
 LABEL_WIDTH, SPACING_WIDTH, ELEMENTS_WIDTH = 16, 20, 17
-RATE_WIDTH, ITERATIONS_WIDTH, RESIDUAL_WIDTH = 13, 14, 12
+RATE_WIDTH, ITERATIONS_WIDTH, RESIDUAL_WIDTH = 16, 14, 12
 
 def _paint(cell, accepted):
     """Colour a cell green when the settling test kept its rate, red when it discarded it."""
@@ -231,7 +238,8 @@ class ErrorConvergenceStudy:
         node_indices = getattr(mechanical.topology, element_kind.data_name).array()
 
         quadrature = MeshQuadrature(nodes, node_indices, element_kind.cpp, self.deck.quadrature_degree)
-        measurement = Measurement(quadrature, u_h, self.deck.manufactured_problem)
+        measurement = Measurement(u_h, mechanical.fem.getPotentialEnergy(),
+                                  self.deck.manufactured_problem, quadrature)
 
         level = MeshRefinementLevelResult(
             label=label, spacing=_mesh_spacing(quadrature, element_kind.dim),

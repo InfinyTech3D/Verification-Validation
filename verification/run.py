@@ -12,7 +12,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from verification.deck import Deck
 from verification.scene import MMSScene
-from verification.study import ErrorConvergenceStudy, NormAgreementStudy, overview
+from verification.study import (ErrorConvergenceStudy, NormAgreementStudy, clear_results,
+                                overview)
 
 # This file's own directory, the verification package. Decks live one directory down, grouped by
 # the force field under test.
@@ -93,33 +94,47 @@ def parse_arguments():
             relative to the verification root by ``resolve_path`` when it does not resolve as typed.
         all : bool
             Run every deck under the verification root's force-field subdirectories. Mutually
-            exclusive with ``deck``, and exactly one of the two is always set.
+            exclusive with ``deck``.
+        clean : bool
+            Delete what previous runs wrote before running.
         traceback : bool
             Print the full stack for a deck that raises under ``--all``. False by default, where
             such a deck reports one line instead so the remaining decks still run.
     """
     parser = argparse.ArgumentParser(description=__doc__)
     # Must choose either --all or pass the deck path
-    which_decks = parser.add_mutually_exclusive_group(required=True)
+    which_decks = parser.add_mutually_exclusive_group()
     which_decks.add_argument("deck", nargs="?", help="path to a deck")
     which_decks.add_argument("--all", action="store_true", help="every deck under the verification root")
+    parser.add_argument("--clean", action="store_true",
+                        help="delete the results of previous runs before running")
     parser.add_argument("--traceback", action="store_true",
                         help="full stack for a deck that raises under --all, which otherwise "
                              "reports one line so the remaining decks still run")
-    return parser.parse_args()
+
+    arguments = parser.parse_args()
+    if not (arguments.deck or arguments.all or arguments.clean):
+        parser.error("one of deck, --all or --clean is required")
+    return arguments
 
 
 if __name__ == "__main__":
     args = parse_arguments()
+
+    if args.clean:
+        clear_results()
 
     # Run all the decks in verification
     if args.all:
         failed = [name for name, study in run_all(VERIFICATION_ROOT, args)
                   if study is None or not study.verified]
     # Run the prescribed deck case
-    else:
+    elif args.deck:
         study = run(resolve_path(args.deck))
         failed = [] if study.verified else [study.name]
+    # Nothing left to do: --clean was given on its own
+    else:
+        failed = []
 
     # On failure, exit with error and report the problematic decks
     if failed:

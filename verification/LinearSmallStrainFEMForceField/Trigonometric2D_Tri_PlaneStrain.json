@@ -15,7 +15,7 @@
   },
   "mesh":        { "cells": [3, 3], "levels": 6, "refinementRatio": 2 },
   "asymptoticTolerance": 0.10,
-  "expectedOrder": { "L2": 2.0, "H1": 1.0, "Enorm": 1.0 },
+  "expectedOrder": { "L2": 2.0, "H1": 1.0, "EnergyDifference": 1.0 },
   "expectedOrderTolerance": 0.15,
   "relativeNoiseFloor": 1e-12,
   "solution":    { "type": "Trigonometric", "amplitude": 0.1 }

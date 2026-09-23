@@ -22,7 +22,7 @@
   },
   "mesh":        { "cells": [2, 16, 2], "levels": 4, "refinementRatio": 2 },
   "asymptoticTolerance": 0.10,
-  "expectedOrder": { "L2": 2.0, "H1": 1.0, "Enorm": 1.0 },
+  "expectedOrder": { "L2": 2.0, "H1": 1.0, "EnergyDifference": 1.0 },
   "expectedOrderTolerance": 0.15,
   "relativeNoiseFloor": 1e-10,
   "tractionOn":  { "front": [1, 1, 1], "back": [1, 1, 1] },

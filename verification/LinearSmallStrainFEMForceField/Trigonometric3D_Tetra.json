@@ -23,7 +23,7 @@
   "gridMapping": { "swapping": true },
   "mesh":        { "cells": [4, 4, 4], "levels": 5, "refinementRatio": 2 },
   "asymptoticTolerance": 0.10,
-  "expectedOrder": { "L2": 2.0, "H1": 1.0, "Enorm": 1.0 },
+  "expectedOrder": { "L2": 2.0, "H1": 1.0, "EnergyDifference": 1.0 },
   "expectedOrderTolerance": 0.15,
   "relativeNoiseFloor": 1e-10,
   "tractionOn":  { "left": [0, 1, 1], "bottom": [1, 0, 1], "front": [1, 1, 0], "right": [1, 1, 1], "top": [1, 1, 1], "back": [1, 1, 1] },

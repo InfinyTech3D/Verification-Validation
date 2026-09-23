@@ -8,12 +8,12 @@ import numpy as np
 class Measurement:
     """One solved mesh refinement level, sampled at its quadrature points."""
 
-    def __init__(self, quadrature, displacement, manufactured_problem):
-        # MeshQuadrature Class
-        self.quadrature = quadrature
-
+    def __init__(self, displacement, energy_h, manufactured_problem, quadrature):
         # ManufacturedProblem Class
         self.manufactured_problem = manufactured_problem
+
+        # MeshQuadrature Class
+        self.quadrature = quadrature
 
         # The FEM displacement and its gradient, interpolated from the field SOFA solved for to the
         # quadrature points.
@@ -21,6 +21,8 @@ class Measurement:
         # Transofrm gradient back into the frame the material law is applied in to measure strain in
         # the unrotated frame.
         self.grad_h = manufactured_problem.local_gradient(quadrature.grads(displacement))
+        # The strain energy SOFA reports for that same solution, from its own element stiffness.
+        self.energy_h = energy_h
 
         # The manufactured solution's analytical displacement and gradient, evaluated at those same
         # points.
@@ -81,20 +83,35 @@ class H1(Metric):
         return measurement.quadrature.FrobeniusNorm(measurement.grad_exact)
 
 
-class EnergyNorm(Metric):
-    """The material-weighted H1 semi-norm the Galerkin solution minimizes in:
+class ErrorEnergy(Metric):
+    """The strain energy the error field carries:
 
-        ‖e‖_E = √(2 ∫ ψ(∇e) dΩ),   e = u_h - u
+        √(2 ∫ ψ(∇e) dΩ),   e = u_h - u
 
-    where ψ is the material's strain energy density -- equal to the bilinear form a(e, e) for a
-    linear material, since ψ is then exactly quadratic in the gradient.
+    SOFA supplies the displacement; ψ and the integration are python's. Left out of METRICS: it is
+    H1 under a material weighting, so it restates that column instead of testing anything further.
     """
 
-    name = "Enorm"
+    name = "ErrorEnergy"
 
     def measure(self, measurement):
         return float(np.sqrt(2.0 * measurement.quadrature.energy(
             measurement.grad_error, measurement.manufactured_problem.energy_density)))
+
+    def scale(self, measurement):
+        return np.sqrt(2.0 * measurement.energy_exact)
+
+
+class EnergyDifference(Metric):
+    """How far the strain energy SOFA reports sits from the one the exact solution carries:
+
+        √(2 |E(u) - E(u_h)|),   E(u) integrated from ψ here, E(u_h) SOFA's getPotentialEnergy
+    """
+
+    name = "EnergyDifference"
+
+    def measure(self, measurement):
+        return float(np.sqrt(2.0 * abs(measurement.energy_exact - measurement.energy_h)))
 
     def scale(self, measurement):
         return np.sqrt(2.0 * measurement.energy_exact)
@@ -105,6 +122,6 @@ class EnergyNorm(Metric):
 # printed table and the key order of every JSON record, so reordering it here reorders both.
 #
 # Expected orders are the deck's `expectedOrder`, not a constant here: they follow from the element,
-# not the metric, so a P2 deck states different numbers for the same three metrics (P1: L2 -> 2,
-# H1 -> 1, Enorm -> 1).
-METRICS = [L2(), H1(), EnergyNorm()]
+# not the metric, so a P2 deck states different numbers for the same metrics (P1: L2 -> 2,
+# H1 -> 1, ErrorEnergy -> 1, EnergyDifference -> 1).
+METRICS = [L2(), H1(), EnergyDifference()]
