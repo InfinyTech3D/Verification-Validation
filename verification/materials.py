@@ -120,3 +120,19 @@ class SaintVenantKirchhoff(Material):
         deformation = identity + gradient
         strain = (deformation.T * deformation - identity) / 2
         return self.lam * strain.trace() ** 2 / 2 + self.mu * sum(e ** 2 for e in strain)
+
+
+class NeoHookean(Material):
+    """psi = mu/2 (tr(C) - d - 2 ln J) + lambda/2 (ln J)^2 on C = F^T F, J = det F, F = I + G."""
+
+    sofa_component_name = "NeoHookeanMaterial"
+
+    def __init__(self, mu, lam):
+        self.mu = mu
+        self.lam = lam
+
+    def energy_density(self, gradient):
+        deformation = sp.eye(gradient.rows) + gradient
+        log_jacobian = sp.log(deformation.det())
+        return (self.mu * ((deformation.T * deformation).trace() - gradient.rows
+                           - 2 * log_jacobian) / 2 + self.lam * log_jacobian ** 2 / 2)
