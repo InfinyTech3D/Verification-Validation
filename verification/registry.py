@@ -2,14 +2,15 @@
 
 from common.geometry import Grid, Bar1D, Beam2D, Beam3D, Tire, Tire2D, Tire3D
 from . import manufactured
-from .materials import LinearElastic, NeoHookean, SaintVenantKirchhoff
+from .materials import LinearElastic, MooneyRivlin, NeoHookean, SaintVenantKirchhoff
 
 # deck "geometry.type" -> geometry class, keyed by the class's own name.
 GEOMETRIES = {cls.__name__: cls for cls in (Grid, Bar1D, Beam2D, Beam3D,
                                             Tire, Tire2D, Tire3D)}
 
 # deck "material.type" -> material class, keyed by the class's own name.
-MATERIALS = {cls.__name__: cls for cls in (LinearElastic, NeoHookean, SaintVenantKirchhoff)}
+MATERIALS = {cls.__name__: cls for cls in (LinearElastic, MooneyRivlin, NeoHookean,
+                                          SaintVenantKirchhoff)}
 
 
 class _ManufacturedSolutionRegistry:

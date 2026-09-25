@@ -3,8 +3,6 @@
 import json
 import pathlib
 
-import Sofa.SofaDeformable
-
 from .manufactured import ManufacturedProblem, rotation_matrix
 from .metrics import METRICS
 from common.sofa.conventions import ELEMENTS
@@ -35,21 +33,6 @@ ROTATION_KEYS = {"angleDegrees", "axis"}
 # Rotation axis -> the coordinate axis it leaves fixed.
 ROTATION_AXES = {"x": 0, "y": 1, "z": 2}
 
-
-# dim -> Young/Poisson -> (mu, lambda)
-def _toLameParameters1D(youngModulus, poissonRatio):
-    """(mu, lambda) at d = 1, where lambda + 2 mu = E collapses Hooke to sigma = E eps."""
-    return 0.5 * youngModulus, 0.0
-
-_LAME = {1: _toLameParameters1D,
-         2: Sofa.SofaDeformable.toLameParameters2D,
-         3: Sofa.SofaDeformable.toLameParameters3D}
-
-
-def _material(config, spatial_dimensions):
-    """The deck's material, built from the parameters it states."""
-    return MATERIALS[config["type"]](*_LAME[spatial_dimensions](config["youngModulus"],
-                                                             config["poissonRatio"]))
 
 
 def _validate(name, config):
@@ -207,12 +190,14 @@ class Deck:
         # ManufacturedProblem Class
         rotation = (rotation_matrix(config["rotation"], self.geometry.spatial_dimensions)
                     if "rotation" in config else None)
+        material = MATERIALS[config["material"]["type"]]
         self.manufactured_problem = ManufacturedProblem(
-            solution, _material(config["material"], self.geometry.spatial_dimensions),
+            solution, material(*material.get_material_parameters(
+                config["material"], self.geometry.spatial_dimensions)),
             self.geometry.spatial_dimensions, rotation)
 
         self.element = config["element"]
-        component = MATERIALS[config["material"]["type"]].sofa_component_name
+        component = material.sofa_component_name
         self.material = config["material"] | ({"sofa_component_name": component} if component else {})
         self.force_field = config["forceField"]
         self.solvers = config["solvers"]

@@ -5,6 +5,19 @@ from abc import ABC, abstractmethod
 import numpy as np
 import sympy as sp
 
+import Sofa.SofaDeformable
+
+
+def _toLameParameters1D(youngModulus, poissonRatio):
+    """(mu, lambda) at d = 1, where lambda + 2 mu = E collapses Hooke to sigma = E eps."""
+    return 0.5 * youngModulus, 0.0
+
+
+# dim -> Young/Poisson -> (mu, lambda)
+_toLame = {1: _toLameParameters1D,
+         2: Sofa.SofaDeformable.toLameParameters2D,
+         3: Sofa.SofaDeformable.toLameParameters3D}
+
 
 def _tensor(dimensions, label):
     """A d x d matrix of independent symbols, named "<label>_i_j", one per entry.
@@ -31,6 +44,11 @@ class Material(ABC):
     # The name of the SOFA component implementing the material law
     # None when no material component is used e.g. LinearSmallStrainFEMForceField
     sofa_component_name = None
+
+    @classmethod
+    @abstractmethod
+    def get_material_parameters(cls, parameters, spatial_dimensions):
+        """Return the constant parameters defining the material law from a dictionary."""
 
     @abstractmethod
     def energy_density(self, gradient):
@@ -94,6 +112,10 @@ def compile_laws(material, dimensions):
 class LinearElastic(Material):
     """Hooke: psi = 1/2 lambda tr(eps)^2 + mu eps:eps on the symmetric gradient eps."""
 
+    @classmethod
+    def get_material_parameters(cls, parameters, spatial_dimensions):
+        return _toLame[spatial_dimensions](parameters["youngModulus"], parameters["poissonRatio"])
+
     def __init__(self, mu, lam):
         self.mu = mu
         self.lam = lam
@@ -103,29 +125,44 @@ class LinearElastic(Material):
         return self.lam * strain.trace() ** 2 / 2 + self.mu * sum(e ** 2 for e in strain)
 
 
-class SaintVenantKirchhoff(Material):
-    """psi = 1/2 lambda tr(E)^2 + mu E:E on the Green-Lagrange strain E = (F^T F - I) / 2, F = I + G.
+class MooneyRivlin(Material):
+    """psi = mu10 (J^(-2/d) I1 - d) + mu01 (J^(-4/d) I2 - d(d-1)/2) + kappa/2 (ln J)^2.
 
-    Stores nothing under a rigid rotation, and tends to LinearElastic as the gradient goes to zero.
+    I1 = tr(C) and I2 = (I1^2 - tr(C^2)) / 2 on C = F^T F, J = det F, F = I + G.
     """
 
-    sofa_component_name = "StVenantKirchhoffMaterial"
+    sofa_component_name = "MooneyRivlinMaterial"
 
-    def __init__(self, mu, lam):
-        self.mu = mu
-        self.lam = lam
+    @classmethod
+    def get_material_parameters(cls, parameters, spatial_dimensions):
+        return parameters["mu10"], parameters["mu01"], parameters["bulkModulus"]
+
+    def __init__(self, mu10, mu01, bulk_modulus):
+        self.mu10 = mu10
+        self.mu01 = mu01
+        self.bulk_modulus = bulk_modulus
 
     def energy_density(self, gradient):
-        identity = sp.eye(gradient.rows)
-        deformation = identity + gradient
-        strain = (deformation.T * deformation - identity) / 2
-        return self.lam * strain.trace() ** 2 / 2 + self.mu * sum(e ** 2 for e in strain)
+        dimensions = gradient.rows
+        deformation = sp.eye(dimensions) + gradient
+        cauchy_green = deformation.T * deformation
+        jacobian = deformation.det()
+        first = cauchy_green.trace()
+        second = (first ** 2 - (cauchy_green * cauchy_green).trace()) / 2
+        return (self.mu10 * (jacobian ** sp.Rational(-2, dimensions) * first - dimensions)
+                + self.mu01 * (jacobian ** sp.Rational(-4, dimensions) * second
+                               - dimensions * (dimensions - 1) / 2)
+                + self.bulk_modulus * sp.log(jacobian) ** 2 / 2)
 
 
 class NeoHookean(Material):
     """psi = mu/2 (tr(C) - d - 2 ln J) + lambda/2 (ln J)^2 on C = F^T F, J = det F, F = I + G."""
 
     sofa_component_name = "NeoHookeanMaterial"
+
+    @classmethod
+    def get_material_parameters(cls, parameters, spatial_dimensions):
+        return _toLame[spatial_dimensions](parameters["youngModulus"], parameters["poissonRatio"])
 
     def __init__(self, mu, lam):
         self.mu = mu
@@ -136,3 +173,26 @@ class NeoHookean(Material):
         log_jacobian = sp.log(deformation.det())
         return (self.mu * ((deformation.T * deformation).trace() - gradient.rows
                            - 2 * log_jacobian) / 2 + self.lam * log_jacobian ** 2 / 2)
+
+
+class SaintVenantKirchhoff(Material):
+    """psi = 1/2 lambda tr(E)^2 + mu E:E on the Green-Lagrange strain E = (F^T F - I) / 2, F = I + G.
+
+    Stores nothing under a rigid rotation, and tends to LinearElastic as the gradient goes to zero.
+    """
+
+    sofa_component_name = "StVenantKirchhoffMaterial"
+
+    @classmethod
+    def get_material_parameters(cls, parameters, spatial_dimensions):
+        return _toLame[spatial_dimensions](parameters["youngModulus"], parameters["poissonRatio"])
+
+    def __init__(self, mu, lam):
+        self.mu = mu
+        self.lam = lam
+
+    def energy_density(self, gradient):
+        identity = sp.eye(gradient.rows)
+        deformation = identity + gradient
+        strain = (deformation.T * deformation - identity) / 2
+        return self.lam * strain.trace() ** 2 / 2 + self.mu * sum(e ** 2 for e in strain)
