@@ -175,6 +175,61 @@ class NeoHookean(Material):
                            - 2 * log_jacobian) / 2 + self.lam * log_jacobian ** 2 / 2)
 
 
+class Ogden(Material):
+    """psi = mu/alpha^2 (J^(-alpha/d) tr(C^(alpha/2)) - d) + kappa/2 (ln J)^2 
+
+    with C = F^T F, J = det F, F = I + G.
+
+    Formally, alpha can take any real value; zero alone is excluded, since it divides. However,
+    there is a limitation in terms of symbolic differentiation here: tr(C^(alpha/2)) sums the
+    eigenvalues of C, and beyond a 2x2 those have no closed form that survives differentiation. So
+    2D takes any non-zero alpha, while 3D takes even alpha, where C^(alpha/2) is a plain matrix
+    power and no eigenvalue is needed.
+    """
+
+    sofa_component_name = "OgdenMaterial"
+
+    @classmethod
+    def get_material_parameters(cls, parameters, spatial_dimensions):
+        return parameters["mu"], parameters["alpha"], parameters["kappa"]
+
+    def __init__(self, mu, alpha, kappa):
+        if alpha == 0:
+            raise ValueError("alpha must be non-zero")
+        self.mu = mu
+        self.alpha = sp.Rational(str(alpha))
+        self.kappa = kappa
+
+    def energy_density(self, gradient):
+        dimensions = gradient.rows
+        deformation = sp.eye(dimensions) + gradient
+        cauchy_green = deformation.T * deformation
+        jacobian = deformation.det()
+
+        exponent = self.alpha / 2
+        if exponent.is_integer:
+            # A whole alpha/2 is a matrix power, keeping tr(C^(alpha/2)) polynomial at any dimension.
+            stretch_sum = (cauchy_green ** int(exponent)).trace()
+        elif dimensions == 2:
+            # Otherwise the eigenvalues of C are needed. In 2D they are the roots of
+            #   lambda^2 - tr(C) lambda + det(C),  i.e.  lambda_+- = (tr(C) +- sqrt(D)) / 2
+            # with D = tr(C)^2 - 4 det(C) = (lambda_1 - lambda_2)^2, which vanishes under an
+            # isotropic stretch. psi stays finite there, but D is a difference of nearly equal
+            # numbers: once the two eigenvalues are within sqrt(eps) of each other it cancels to a
+            # negative value and sqrt(D) turns NaN.
+            discriminant = cauchy_green.trace() ** 2 - 4 * cauchy_green.det()
+            stretch_sum = sum(((cauchy_green.trace() + sign * sp.sqrt(discriminant)) / 2) ** exponent
+                              for sign in (1, -1))
+        else:
+            raise ValueError(f"alpha = {self.alpha} needs the eigenvalues of C, which beyond a 2x2 "
+                             f"have no closed form that survives differentiation; at {dimensions}D "
+                             f"alpha must be even")
+
+        return (self.mu / self.alpha ** 2
+                * (jacobian ** (-self.alpha / dimensions) * stretch_sum - dimensions)
+                + self.kappa * sp.log(jacobian) ** 2 / 2)
+
+
 class SaintVenantKirchhoff(Material):
     """psi = 1/2 lambda tr(E)^2 + mu E:E on the Green-Lagrange strain E = (F^T F - I) / 2, F = I + G.
 
