@@ -105,6 +105,62 @@ class ISFComparisonStudy:
             plt.close(figure)
 
     def _plot(self, element, x_sofa, u_sofa, x_fenics, u_fenics, u_exact):
+        if x_sofa.ndim == 2:
+            sources = [('SOFA', x_sofa, u_sofa), ('FEniCS', x_fenics, u_fenics)]
+            if u_exact is not None:
+                sources.append(('Analytic', x_sofa, u_exact))
+            components = ['u_x', 'u_y', 'u_z'][:x_sofa.shape[1]]
+            title = f"{self.name}/{element}    rms = {self.results[element]['rms']:.2e}"
+
+            # 3D: plot only the x-y plane at mid-height, as a 2D grid with all three components.
+            # Every 3D case loads along x or y, so this plane carries the deformation; the rms still
+            # covers all nodes. The nearest node layer is taken, so no value is interpolated.
+            if x_sofa.shape[1] == 3:
+                z_layers = np.unique(x_sofa[:, 2].round(10))
+                z_mid = z_layers[len(z_layers) // 2]
+                sources = [(label, x[np.isclose(x[:, 2], z_mid)], u[np.isclose(x[:, 2], z_mid)])
+                           for label, x, u in sources]
+                title += f"    slice z = {z_mid:.3g}"
+
+            # Nodes follow the grid order i + nx*j: a Delaunay triangulation would add slivers on the boundary.
+            nx = len(np.unique(x_sofa[:, 0].round(10)))
+            shape = (-1, nx)
+
+            extent = np.ptp(sources[0][1], axis=0)
+            panel_width = 4.5
+            panel_height = panel_width * extent[1] / extent[0] + 0.5
+            figure, axes = plt.subplots(len(sources), len(components), squeeze=False, sharex=True, sharey=True,
+                                        figsize=(panel_width * len(components) + 0.5,
+                                                 panel_height * len(sources) + 1.2),
+                                        layout='constrained')
+
+            for column, component in enumerate(components):
+                # Shared colour scale per component, so the solvers compare at a glance.
+                values = [u[:, column] for _, _, u in sources]
+                vmin, vmax = min(v.min() for v in values), max(v.max() for v in values)
+                # A component constant over the plot (u_z at mid-height) would stretch round-off over the colour map.
+                span = 1e-6 * max(np.abs(u).max() for _, _, u in sources)
+                if vmax - vmin < span:
+                    vmin, vmax = (vmin + vmax - span) / 2, (vmin + vmax + span) / 2
+                for row, (label, x, u) in enumerate(sources):
+                    ax = axes[row, column]
+                    image = ax.pcolormesh(x[:, 0].reshape(shape), x[:, 1].reshape(shape),
+                                          u[:, column].reshape(shape),
+                                          shading='gouraud', cmap='viridis', vmin=vmin, vmax=vmax)
+                    ax.set_aspect('equal')
+                    if row == 0:
+                        ax.set_title(f'${component}$')
+                    if column == 0:
+                        ax.set_ylabel(f'{label}\ny')
+                    if row == len(sources) - 1:
+                        ax.set_xlabel('x')
+                colorbar = figure.colorbar(image, ax=axes[:, column], location='bottom', shrink=0.8)
+                colorbar.ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(5))
+                colorbar.ax.ticklabel_format(axis='x', style='sci', scilimits=(0, 0))
+
+            figure.suptitle(title)
+            return figure
+
         figure, axes = plt.subplots(figsize=(7, 5))
         if u_exact is not None:
             axes.plot(x_sofa, u_exact, 'k--', lw=1, label='analytic')
