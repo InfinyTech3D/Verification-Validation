@@ -1,0 +1,25 @@
+{
+  "geometry":    { "type": "Beam2D", "length": 1.0, "width": 1.0 },
+  "element":     "quad",
+  "excitationSteps": 1,
+  "quadratureDegree": 3,
+  "sourceQuadratureDegree": 3,
+  "material":    { "type": "Ogden", "mu": 8e5, "alpha": 3, "kappa": 8e5 },
+  "forceField":  { "type": "HyperelasticityFEMForceField" },
+  "solvers": {
+    "integration":  { "type": "StaticSolver" },
+    "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 10,
+                      "relativeInitialStoppingThreshold": 1e-8,
+                      "relativeSuccessiveStoppingThreshold": 0,
+                      "absoluteResidualStoppingThreshold": 0,
+                      "printLog": true },
+    "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+  },
+  "mesh":        { "cells": [3, 3], "levels": 6, "refinementRatio": 2 },
+  "asymptoticTolerance": 0.10,
+  "expectedOrder": { "L2": 2.0, "H1": 1.0, "EnergyDifference": 1.0 },
+  "expectedOrderTolerance": 0.15,
+  "relativeNoiseFloor": 1e-12,
+  "tractionOn":  { "left": [0, 1], "bottom": [1, 0], "right": [1, 1], "top": [1, 1] },
+  "solution":    { "type": "Trigonometric", "amplitude": 0.002 }
+}

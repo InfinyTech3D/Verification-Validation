@@ -147,10 +147,10 @@ class MooneyRivlin(Material):
         deformation = sp.eye(dimensions) + gradient
         cauchy_green = deformation.T * deformation
         jacobian = deformation.det()
-        first = cauchy_green.trace()
-        second = (first ** 2 - (cauchy_green * cauchy_green).trace()) / 2
-        return (self.mu10 * (jacobian ** sp.Rational(-2, dimensions) * first - dimensions)
-                + self.mu01 * (jacobian ** sp.Rational(-4, dimensions) * second
+        first_invariant = cauchy_green.trace()
+        second_invariant = (first_invariant ** 2 - (cauchy_green * cauchy_green).trace()) / 2
+        return (self.mu10 * (jacobian ** sp.Rational(-2, dimensions) * first_invariant - dimensions)
+                + self.mu01 * (jacobian ** sp.Rational(-4, dimensions) * second_invariant
                                - dimensions * (dimensions - 1) / 2)
                 + self.bulk_modulus * sp.log(jacobian) ** 2 / 2)
 
@@ -211,15 +211,33 @@ class Ogden(Material):
             # A whole alpha/2 is a matrix power, keeping tr(C^(alpha/2)) polynomial at any dimension.
             stretch_sum = (cauchy_green ** int(exponent)).trace()
         elif dimensions == 2:
-            # Otherwise the eigenvalues of C are needed. In 2D they are the roots of
-            #   lambda^2 - tr(C) lambda + det(C),  i.e.  lambda_+- = (tr(C) +- sqrt(D)) / 2
-            # with D = tr(C)^2 - 4 det(C) = (lambda_1 - lambda_2)^2, which vanishes under an
-            # isotropic stretch. psi stays finite there, but D is a difference of nearly equal
-            # numbers: once the two eigenvalues are within sqrt(eps) of each other it cancels to a
-            # negative value and sqrt(D) turns NaN.
-            discriminant = cauchy_green.trace() ** 2 - 4 * cauchy_green.det()
-            stretch_sum = sum(((cauchy_green.trace() + sign * sp.sqrt(discriminant)) / 2) ** exponent
-                              for sign in (1, -1))
+            # In 2D the eigenvalues of C are the roots of l^2 - tr(C) l + det(C):
+            #   l = (tr(C) +- sqrt(D)) / 2,   D = tr(C)^2 - 4 det(C) = (l1 - l2)^2
+            # The discriminant D may turn negative, due to cancellation and loss of accuracy in
+            # floating-point arithmetic, in case l1 and l2 are close to within a threshold.
+            # Consequently, sqrt(D) will turn to NaN. The trace is written twice and the
+            # differentiation is branched out on the value of D.
+            trace = cauchy_green.trace()
+            discriminant = trace ** 2 - 4 * cauchy_green.det()
+
+            # The trace expressed as the roots of the characteristic polynomial
+            #   tr(C^(alpha/2)) = ((tr(C) + sqrt(D))/2)^(alpha/2) + ((tr(C) - sqrt(D))/2)^(alpha/2)
+            through_roots = sum(((trace + sign * sp.sqrt(discriminant)) / 2) ** exponent
+                                for sign in (1, -1))
+
+            # The trace expressed as an expansion in D, open to it because swapping the roots leaves
+            # their sum unchanged: it is even in sqrt(D), hence a function of D with no root left
+            #   tr(C^(alpha/2)) = 2 sum_m binom(alpha/2, 2m) (tr(C)/2)^(alpha/2 - 2m) (D/4)^m
+            expansion = 2 * sum(sp.binomial(exponent, 2 * order)
+                                * (trace / 2) ** (exponent - 2 * order)
+                                * (discriminant / 4) ** order for order in range(3))
+
+            # Eigenvalue multiplicity is only ever met to within a floating-point threshold that
+            # scales with D and tr(C).
+            #   D < tr(C)^2 1e-6  ->  expansion, accurate to 1e-16
+            #   otherwise         ->  roots, where D still holds ~10 significant digits
+            stretch_sum = sp.Piecewise((expansion, discriminant < trace ** 2 / 10 ** 6),
+                                       (through_roots, True))
         else:
             raise ValueError(f"alpha = {self.alpha} needs the eigenvalues of C, which beyond a 2x2 "
                              f"have no closed form that survives differentiation; at {dimensions}D "
