@@ -18,9 +18,7 @@ RESULTS_ROOT = VALIDATION_ROOT / "results"
 
 def _load_module(path, name):
     """Import the .py file at `path`"""
-    sys.modules.pop('case', None)  # each sofa_scene.py does `from case import ...`; evict the stale one
-
-    spec = importlib.util.spec_from_file_location(name, path)  # `name` unique per case: avoids the same collision for this module itself
+    spec = importlib.util.spec_from_file_location(name, path)  # `name` unique per case: avoids a module collision across cases
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
