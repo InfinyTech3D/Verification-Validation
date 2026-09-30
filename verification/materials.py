@@ -5,18 +5,28 @@ from abc import ABC, abstractmethod
 import numpy as np
 import sympy as sp
 
-import Sofa.SofaDeformable
-
 
 def _toLameParameters1D(youngModulus, poissonRatio):
     """(mu, lambda) at d = 1, where lambda + 2 mu = E collapses Hooke to sigma = E eps."""
     return 0.5 * youngModulus, 0.0
 
 
+def _toLameParameters2D(youngModulus, poissonRatio):
+    """(mu, lambda) at d = 2, in plane stress: the convention SOFA's force fields assume."""
+    return (youngModulus / (2 * (1 + poissonRatio)),
+            youngModulus * poissonRatio / (1 - poissonRatio ** 2))
+
+
+def _toLameParameters3D(youngModulus, poissonRatio):
+    """(mu, lambda) at d = 3."""
+    return (youngModulus / (2 * (1 + poissonRatio)),
+            youngModulus * poissonRatio / ((1 + poissonRatio) * (1 - 2 * poissonRatio)))
+
+
 # dim -> Young/Poisson -> (mu, lambda)
 _toLame = {1: _toLameParameters1D,
-         2: Sofa.SofaDeformable.toLameParameters2D,
-         3: Sofa.SofaDeformable.toLameParameters3D}
+         2: _toLameParameters2D,
+         3: _toLameParameters3D}
 
 
 def _tensor(dimensions, label):
