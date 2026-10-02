@@ -1,4 +1,4 @@
-"""Prefabs a study configures: they take the deck blocks they need and build themselves."""
+"""Prefabs a study configures: they take the case blocks they need and build themselves."""
 
 import Sofa
 import Sofa.Core
