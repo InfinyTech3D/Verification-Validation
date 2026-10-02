@@ -9,7 +9,7 @@ import traceback
 # Make the plugin's packages importable when this file is run directly.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from validation.study import ISFComparisonStudy, overview
+from validation.study.study import ISFComparisonStudy, overview
 
 
 def run_all(directory, args):
@@ -51,7 +51,7 @@ def parse_arguments():
         case : str or None
             Path to the single case to run. ``None`` when ``--all`` was given instead.
         all : bool
-            Run every case under the validation root. Mutually exclusive with ``case``, and
+            Run every case under the cases folder. Mutually exclusive with ``case``, and
             exactly one of the two is always set.
         fenics : bool
             Regenerate each case's reference_solution.json by running its fenics_scene.py before
@@ -65,7 +65,7 @@ def parse_arguments():
     # Must choose either --all or pass the case path
     which_cases = parser.add_mutually_exclusive_group(required=True)
     which_cases.add_argument("case", nargs="?", help="path to a case")
-    which_cases.add_argument("--all", action="store_true", help="every case under the validation root")
+    which_cases.add_argument("--all", action="store_true", help="every case under the cases folder")
     parser.add_argument("--fenics", action="store_true",
                         help="regenerate reference_solution.json by running fenics_scene.py before comparing")
     parser.add_argument("--traceback", action="store_true",
@@ -73,12 +73,12 @@ def parse_arguments():
     return parser.parse_args()
 
 
-VALIDATION_ROOT = pathlib.Path(__file__).parent
+CASES_ROOT = pathlib.Path(__file__).parent / "cases"
 
 
 if __name__ == '__main__':
     args = parse_arguments()
     if args.all:
-        run_all(VALIDATION_ROOT, args)
+        run_all(CASES_ROOT, args)
     else:
         run(args.case, fenics=args.fenics)
