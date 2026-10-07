@@ -69,8 +69,9 @@ class ManufacturedProblem:
         source = -sp.Matrix([sum(sp.diff(stress[i, j], self.coordinates[j])
                                  for j in range(dimensions))
                              for i in range(dimensions)])
+        self.source_expression = source
 
-        self.u = self._compile_field(displacement, (dimensions,))
+        self.u =self._compile_field(displacement, (dimensions,))
         self.grad_u = self._compile_field(gradient, (dimensions, dimensions))
         self.stress = self._compile_field(stress, (dimensions, dimensions))
         self.source = self._compile_field(source, (dimensions,))
