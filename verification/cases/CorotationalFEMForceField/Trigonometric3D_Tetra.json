@@ -3,7 +3,7 @@
   "compareAgainst": "LinearSmallStrainFEMForceField/Trigonometric3D_Tetra_Dirichlet",
   "agreementTolerance": 1e-2,
   "element":     "tet",
-  "quadratureDegree": 2,
+  "errorQuadratureDegree": 2,
   "sourceQuadratureDegree": 2,
   "rotation":    { "angleDegrees": 45.0, "axis": "z" },
   "excitationSteps": 3,

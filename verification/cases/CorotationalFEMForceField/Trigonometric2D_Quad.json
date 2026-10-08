@@ -5,7 +5,7 @@
   "element":     "quad",
   "rotation":    { "angleDegrees": 45.0, "axis": "z" },
   "excitationSteps": 5,
-  "quadratureDegree": 3,
+  "errorQuadratureDegree": 3,
   "sourceQuadratureDegree": 3,
   "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
   "forceField":  { "type": "CorotationalFEMForceField", "rotationMethod": "polar" },

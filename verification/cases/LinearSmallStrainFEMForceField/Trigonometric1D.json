@@ -1,7 +1,7 @@
 {
   "geometry":    { "type": "Bar1D", "length": 2.0 },
   "element":     "edge",
-  "quadratureDegree": 3,
+  "errorQuadratureDegree": 3,
   "sourceQuadratureDegree": 2,
   "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
   "forceField":  { "type": "LinearSmallStrainFEMForceField" },

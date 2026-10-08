@@ -43,7 +43,7 @@ MANUFACTURED_SOLUTIONS = _ManufacturedSolutionRegistry()
 
 # Required keys for all cases. A missing key is an omission, an unknown key is a typo.
 REQUIRED = {"geometry", "element", "solution", "material", "forceField",
-            "quadratureDegree", "sourceQuadratureDegree", "solvers", "mesh",
+            "errorQuadratureDegree", "sourceQuadratureDegree", "solvers", "mesh",
             "asymptoticTolerance", "expectedOrder", "expectedOrderTolerance", "relativeNoiseFloor"}
 
 OPTIONAL = {
@@ -231,7 +231,7 @@ class Case:
         self.force_field = config["forceField"]
         self.solvers = config["solvers"]
         self.mesh = config["mesh"]
-        self.quadrature_degree = config["quadratureDegree"]
+        self.error_quadrature_degree = config["errorQuadratureDegree"]
         self.source_quadrature_degree = config["sourceQuadratureDegree"]
         self.asymptotic_tolerance = config["asymptoticTolerance"]
         self.expected_order = config["expectedOrder"]

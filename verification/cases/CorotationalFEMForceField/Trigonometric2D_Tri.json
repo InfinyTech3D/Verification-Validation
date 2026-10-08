@@ -5,7 +5,7 @@
   "element":     "tri",
   "rotation":    { "angleDegrees": 45.0, "axis": "z" },
   "excitationSteps": 5,
-  "quadratureDegree": 2,
+  "errorQuadratureDegree": 2,
   "sourceQuadratureDegree": 2,
   "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
   "forceField":  { "type": "CorotationalFEMForceField", "rotationMethod": "polar" },

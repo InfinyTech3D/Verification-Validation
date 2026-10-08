@@ -1,7 +1,7 @@
 {
   "geometry":    { "type": "Beam2D", "length": 1.0, "width": 1.0 },
   "element":     "quad",
-  "quadratureDegree": 3,
+  "errorQuadratureDegree": 3,
   "sourceQuadratureDegree": 3,
   "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
   "forceField":  { "type": "LinearSmallStrainFEMForceField" },

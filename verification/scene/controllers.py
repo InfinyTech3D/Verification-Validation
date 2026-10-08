@@ -11,7 +11,7 @@ from common.sofa.conventions import ELEMENTS
 class ApplyManufacturedSourceTerm(Sofa.Core.Controller):
     """Loads a mesh with the body force a manufactured solution puts on the right-hand side."""
 
-    def __init__(self, node, dofs, source, vec_type, element, quadrature_degree,
+    def __init__(self, node, dofs, source, vec_type, element, source_quadrature_degree,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.node = node
@@ -19,7 +19,7 @@ class ApplyManufacturedSourceTerm(Sofa.Core.Controller):
         self.source = source
         self.vec_type = vec_type
         self.element = element
-        self.quadrature_degree = quadrature_degree
+        self.source_quadrature_degree = source_quadrature_degree
 
     def init(self):
         template = f'{self.vec_type},{ELEMENTS[self.element].cpp}'
@@ -32,7 +32,7 @@ class ApplyManufacturedSourceTerm(Sofa.Core.Controller):
         self.node.addObject('VectorSourceTerm', name='bodyForce', template=template,
                             sourceDensity='@sourceDensity')
         self.node.addObject('FEMSourceTermIntegrator', name='bodySource', template=template,
-                            topology='@topology', quadratureDegree=self.quadrature_degree,
+                            topology='@topology', quadratureDegree=self.source_quadrature_degree,
                             constantSources='@bodyForce')
 
 
@@ -40,7 +40,7 @@ class ApplyManufacturedTraction(Sofa.Core.Controller):
     """Loads the whole boundary of a mesh with the traction a manufactured solution exerts on it."""
 
     def __init__(self, geometry, node, dofs, stress, vec_type, element, spatial_dimensions,
-                 quadrature_degree, *args, **kwargs):
+                 source_quadrature_degree, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.geometry = geometry
         self.node = node
@@ -49,7 +49,7 @@ class ApplyManufacturedTraction(Sofa.Core.Controller):
         self.vec_type = vec_type
         self.element = element
         self.spatial_dimensions = spatial_dimensions
-        self.quadrature_degree = quadrature_degree
+        self.source_quadrature_degree = source_quadrature_degree
         self.nodal_stress = None
         # Point load is used for the particular case of Traction BC in 1D
         self.point_load = None
@@ -88,7 +88,7 @@ class ApplyManufacturedTraction(Sofa.Core.Controller):
 
         boundary.addObject('StressSourceTerm', name='traction', template=template, stress='@stress')
         boundary.addObject('FEMSourceTermIntegrator', name='tractionSource', template=template,
-                           topology='@topology', quadratureDegree=self.quadrature_degree,
+                           topology='@topology', quadratureDegree=self.source_quadrature_degree,
                            constantSources='@traction')
 
     def add_point_load(self, rest_positions):

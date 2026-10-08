@@ -66,7 +66,7 @@ class MMSScene(SofaScene):
         source_term_controller = mechanical.addObject(ApplyManufacturedSourceTerm(
             node=mechanical, dofs=mechanical.dofs, source=self.manufactured_problem.source,
             vec_type=VEC, element=self.element,
-            quadrature_degree=self.source_quadrature_degree, name='bodyForceCtrl'))
+            source_quadrature_degree=self.source_quadrature_degree, name='bodyForceCtrl'))
 
         # Load the whole boundary with the traction that solution exerts there; on the directions
         # the case left clamped it is absorbed by the constraint.
@@ -74,7 +74,7 @@ class MMSScene(SofaScene):
             geometry=self.geometry, node=mechanical, dofs=mechanical.dofs,
             stress=self.manufactured_problem.stress,
             vec_type=VEC, element=self.element, spatial_dimensions=spatial_dimensions,
-            quadrature_degree=self.source_quadrature_degree, name='tractionCtrl'))
+            source_quadrature_degree=self.source_quadrature_degree, name='tractionCtrl'))
 
         # Clamp the mesh dofs by region as determined by the manufactured solution BCs
         clamp_controller = mechanical.addObject(RegionClamp(

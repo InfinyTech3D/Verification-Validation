@@ -2,7 +2,7 @@
   "geometry":    { "type": "Beam3D", "length": 1.0, "width": 1.0, "height": 1.0 },
   "element":     "hexa",
   "excitationSteps": 1,
-  "quadratureDegree": 3,
+  "errorQuadratureDegree": 3,
   "sourceQuadratureDegree": 3,
   "material":    { "type": "Ogden", "mu": 8e5, "alpha": 4, "kappa": 8e5 },
   "forceField":  { "type": "HyperelasticityFEMForceField" },

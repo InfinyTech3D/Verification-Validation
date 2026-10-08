@@ -1,7 +1,7 @@
 {
   "geometry":    { "type": "Tire2D", "inner_radius": 0.25, "outer_radius": 0.5 },
   "element":     "tri",
-  "quadratureDegree": 2,
+  "errorQuadratureDegree": 2,
   "sourceQuadratureDegree": 2,
   "material":    { "type": "LinearElastic", "youngModulus": 1.0, "poissonRatio": 0.3 },
   "forceField":  { "type": "LinearSmallStrainFEMForceField" },

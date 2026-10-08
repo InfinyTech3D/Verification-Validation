@@ -237,7 +237,7 @@ class ErrorConvergenceStudy:
         # node_indices[e] = the mesh-node indices forming element e (from the topology).
         node_indices = getattr(mechanical.topology, element_kind.data_name).array()
 
-        quadrature = MeshQuadrature(nodes, node_indices, element_kind.cpp, self.case.quadrature_degree)
+        quadrature = MeshQuadrature(nodes, node_indices, element_kind.cpp, self.case.error_quadrature_degree)
         measurement = Measurement(u_h, mechanical.fem.getPotentialEnergy(),
                                   self.case.manufactured_problem, quadrature)
 

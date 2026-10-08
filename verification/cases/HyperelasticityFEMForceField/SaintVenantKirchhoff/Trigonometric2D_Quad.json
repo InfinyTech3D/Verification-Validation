@@ -2,7 +2,7 @@
   "geometry":    { "type": "Beam2D", "length": 1.0, "width": 1.0 },
   "element":     "quad",
   "excitationSteps": 1,
-  "quadratureDegree": 3,
+  "errorQuadratureDegree": 3,
   "sourceQuadratureDegree": 3,
   "material":    { "type": "SaintVenantKirchhoff", "youngModulus": 1e6, "poissonRatio": 0.3 },
   "forceField":  { "type": "HyperelasticityFEMForceField" },

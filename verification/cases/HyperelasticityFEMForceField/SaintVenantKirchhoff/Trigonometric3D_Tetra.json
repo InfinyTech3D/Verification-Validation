@@ -2,7 +2,7 @@
   "geometry":    { "type": "Beam3D", "length": 1.0, "width": 1.0, "height": 1.0 },
   "element":     "tet",
   "excitationSteps": 1,
-  "quadratureDegree": 2,
+  "errorQuadratureDegree": 2,
   "sourceQuadratureDegree": 2,
   "material":    { "type": "SaintVenantKirchhoff", "youngModulus": 1e6, "poissonRatio": 0.3 },
   "forceField":  { "type": "HyperelasticityFEMForceField" },
