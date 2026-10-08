@@ -64,6 +64,7 @@ class ManufacturedProblem:
 
         # Keep a symbolic representation of the displacement: `equation` reads off this directly.
         self.displacement_expression = displacement
+        self.stress_expression = stress
 
         gradient = displacement.jacobian(self.coordinates)
         source = -sp.Matrix([sum(sp.diff(stress[i, j], self.coordinates[j])
