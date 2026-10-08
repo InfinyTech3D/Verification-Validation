@@ -1,14 +1,15 @@
 {
   "geometry":    { "type": "Beam2D", "length": 1.0, "width": 1.0 },
+  "element":     "quad",
+  "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
+  "forceField":  { "type": "CorotationalFEMForceField", "rotationMethod": "polar" },
+  "solution":    { "type": "Trigonometric", "amplitude": 0.02 },
   "compareAgainst": "LinearSmallStrainFEMForceField/Trigonometric2D_Quad_Dirichlet",
   "agreementTolerance": 1e-2,
-  "element":     "quad",
   "rotation":    { "angleDegrees": 45.0, "axis": "z" },
   "excitationSteps": 5,
   "errorQuadratureDegree": 3,
   "sourceQuadratureDegree": 3,
-  "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
-  "forceField":  { "type": "CorotationalFEMForceField", "rotationMethod": "polar" },
   "solvers": {
     "integration":  { "type": "StaticSolver" },
     "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 40,
@@ -23,6 +24,5 @@
   "asymptoticTolerance": 0.10,
   "expectedOrder": { "L2": 2.0, "H1": 1.0, "EnergyDifference": 1.0 },
   "expectedOrderTolerance": 0.15,
-  "relativeNoiseFloor": 1e-12,
-  "solution":    { "type": "Trigonometric", "amplitude": 0.02 }
+  "relativeNoiseFloor": 1e-12
 }
