@@ -26,9 +26,11 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
-from matplotlib.colors import to_hex
+from matplotlib.collections import PolyCollection
+from matplotlib.colors import Normalize, to_hex
 from matplotlib.lines import Line2D
 from matplotlib.ticker import NullLocator
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
 
 import Sofa.Core
@@ -161,6 +163,11 @@ class MeshRefinementLevelResult:
     noise_floor: dict                            # metric name -> the magnitude below which its error is noise
     newton: dict | None                          # this mesh's Newton solve diagnostics, or None if none ran
     rates: dict = field(default_factory=dict)    # metric name -> ConvergenceRate, unknown until this level is added
+    # The solved field, kept for drawing.
+    nodes: np.ndarray | None = None              # rest positions of the mesh nodes
+    elements: np.ndarray | None = None           # node indices of each element
+    displacement: np.ndarray | None = None       # u_h at the nodes
+    boundary: np.ndarray | None = None           # node indices of each boundary face, 3D only
 
 
 @dataclass
@@ -249,7 +256,12 @@ class ErrorConvergenceStudy:
             values={metric.name: metric.measure(measurement) for metric in METRICS},
             noise_floor={metric.name: self.case.relative_noise_floor * metric.scale(measurement)
                          for metric in METRICS},
-            newton=_newton_diagnostics(getattr(mechanical, 'newton', None)))
+            newton=_newton_diagnostics(getattr(mechanical, 'newton', None)),
+            nodes=np.array(nodes), elements=np.array(node_indices), displacement=np.array(u_h))
+        if element_kind.dim == 3:
+            # The faces the traction controller mapped out of the mesh.
+            kind, _ = element_kind.boundary_mappings[-1]
+            level.boundary = np.array(getattr(mechanical.getChild(kind).topology, ELEMENTS[kind].data_name).array())
         self.levels.append(level)
         level.rates = {metric.name: self.rate(metric.name) for metric in METRICS}
 
@@ -420,6 +432,64 @@ class ErrorConvergenceStudy:
         figure.tight_layout()
         self.plots = {"convergence": figure}
         return axes
+
+    def plot_fields(self):
+        """Construct displacement field plots, shown on the deformed mesh, and store into self.plots"""
+        dim = self.case.geometry.dim
+        if dim == 1:
+            figure, axes = plt.subplots(figsize=(7.2, 4.2))
+            bar = np.linspace(self.levels[0].nodes[:, 0].min(), self.levels[0].nodes[:, 0].max(), 400)
+            samples = np.zeros((bar.size, self.levels[0].nodes.shape[1]))
+            samples[:, 0] = bar
+            axes.plot(bar, self.case.manufactured_problem.u(samples)[:, 0], color=INK,
+                      linewidth=2.4, label="exact")
+            colours = colormaps["viridis"](np.linspace(0.0, 0.85, len(self.levels)))
+            for level, colour in zip(self.levels, colours):
+                order = np.argsort(level.nodes[:, 0])
+                # Node markers on fine levels would merge into a thick band.
+                axes.plot(level.nodes[order, 0], level.displacement[order, 0], color=to_hex(colour),
+                          marker="o" if len(order) <= 25 else None, markersize=4,
+                          linewidth=1.4, label=level.label)
+            axes.set_facecolor(SURFACE)
+            axes.grid(True, color=GRID, linewidth=0.8)
+            axes.set_xlabel("x", fontsize=9, color=INK_SOFT)
+            axes.set_ylabel("u", fontsize=9, color=INK_SOFT)
+            axes.tick_params(colors=INK_SOFT, labelsize=9)
+            axes.legend(frameon=False, fontsize=8, labelcolor=INK_SOFT)
+            figure.patch.set_facecolor(SURFACE)
+            figure.tight_layout()
+        else:
+            figure, panels = plt.subplots(1, len(self.levels), figsize=(2.6 * len(self.levels), 3.0),
+                                          squeeze=False, layout="constrained",
+                                          subplot_kw={"projection": "3d"} if dim == 3 else {})
+            magnitudes = [np.linalg.norm(level.displacement, axis=-1) for level in self.levels]
+            # The finest level sets the scale: coarse levels overshoot and would stretch it.
+            norm = Normalize(vmin=magnitudes[-1].min(), vmax=magnitudes[-1].max())
+            for axes, level, magnitude in zip(panels[0], self.levels, magnitudes):
+                deformed = level.nodes + level.displacement
+                # Each face takes the mean |u_h| of its nodes.
+                if dim == 2:
+                    faces = PolyCollection(deformed[level.elements][..., :2],
+                                           array=magnitude[level.elements].mean(axis=1), cmap="viridis",
+                                           norm=norm, edgecolors="none", antialiased=False)
+                    axes.add_collection(faces)
+                    axes.autoscale_view()
+                    axes.set_aspect("equal")
+                else:
+                    faces = Poly3DCollection(deformed[level.boundary],
+                                             array=magnitude[level.boundary].mean(axis=1), cmap="viridis",
+                                             norm=norm, linewidths=0, antialiased=False)
+                    axes.add_collection3d(faces)
+                    low, high = deformed.min(axis=0), deformed.max(axis=0)
+                    axes.set(xlim=(low[0], high[0]), ylim=(low[1], high[1]), zlim=(low[2], high[2]))
+                    axes.set_box_aspect(high - low)
+                axes.set_axis_off()
+                axes.set_title(level.label, fontsize=9, color=INK)
+            figure.colorbar(faces, ax=panels[0].tolist(), shrink=0.8, label="|u_h|", extend="both")
+            figure.suptitle(f"Element: {self.case.element.capitalize()}", fontsize=11, color=INK)
+            figure.patch.set_facecolor(SURFACE)
+
+        self.plots["fields"] = figure
 
     def report(self):
         """Print one row per mesh refinement level, then the order each metric settled on."""
