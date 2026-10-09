@@ -349,12 +349,19 @@ class ErrorConvergenceStudy:
                                       for metric in METRICS}}
                            for level in self.levels]}
 
-    def plot(self):
+    def plot(self, axes=None):
         """Build the convergence-rate figure into self.plots: error against mesh spacing, log-log,
-        one line per metric, its segments coloured by the verdict on the rate they carry."""
+        one line per metric, its segments coloured by the verdict on the rate they carry.
+
+        Draws on `axes` when given, e.g. one panel of a side-by-side comparison, else on a figure
+        of its own. Returns the axes drawn on.
+        """
         spacings = [level.spacing for level in self.levels]
 
-        figure, axes = plt.subplots(figsize=(7.2, 4.8))
+        if axes is None:
+            figure, axes = plt.subplots(figsize=(7.2, 4.8))
+        else:
+            figure = axes.figure
         figure.patch.set_facecolor(SURFACE)
         axes.set_facecolor(SURFACE)
         axes.grid(True, color=GRID, linewidth=0.8)
@@ -412,6 +419,7 @@ class ErrorConvergenceStudy:
 
         figure.tight_layout()
         self.plots = {"convergence": figure}
+        return axes
 
     def report(self):
         """Print one row per mesh refinement level, then the order each metric settled on."""
@@ -510,12 +518,10 @@ class NormAgreementStudy(ErrorConvergenceStudy):
                 "differences": {name: result.differences
                                 for name, result in self.agreement.items()}}
 
-    def plot(self):
+    def plot(self, axes=None):
         """The convergence figure, ringing the reference's value at every level compared."""
-        super().plot()
-
-        figure = self.plots["convergence"]
-        axes = figure.axes[0]
+        axes = super().plot(axes)
+        figure = axes.figure
         spacings = [level.spacing for level in self.levels]
         for metric in METRICS:
             differences = self.agreement[metric.name].differences
@@ -532,6 +538,7 @@ class NormAgreementStudy(ErrorConvergenceStudy):
         axes.legend(loc="lower right", frameon=False, fontsize=9, handlelength=1.6,
                     labelcolor=INK_SOFT)
         figure.tight_layout()
+        return axes
 
     def report(self):
         """The convergence table, then how closely this case reproduced its reference."""
