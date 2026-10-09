@@ -462,7 +462,12 @@ class ErrorConvergenceStudy:
             figure, panels = plt.subplots(1, len(self.levels), figsize=(2.6 * len(self.levels), 3.0),
                                           squeeze=False, layout="constrained",
                                           subplot_kw={"projection": "3d"} if dim == 3 else {})
-            magnitudes = [np.linalg.norm(level.displacement, axis=-1) for level in self.levels]
+            # A rotated problem's rigid rotation would dwarf its deformation in the colours: colour by
+            # the pulled-back displacement, R^T (X + u_h) - X, written for row vectors.
+            rotation = self.case.manufactured_problem.rotation
+            rotation = np.eye(self.levels[0].nodes.shape[1]) if rotation is None else np.array(rotation.evalf(), dtype=float)
+            magnitudes = [np.linalg.norm((level.nodes + level.displacement) @ rotation - level.nodes, axis=-1)
+                          for level in self.levels]
             # The finest level sets the scale: coarse levels overshoot and would stretch it.
             norm = Normalize(vmin=magnitudes[-1].min(), vmax=magnitudes[-1].max())
             for axes, level, magnitude in zip(panels[0], self.levels, magnitudes):
