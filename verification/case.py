@@ -57,7 +57,8 @@ OPTIONAL = {
 
 MESH_KEYS = {"cells", "levels", "refinementRatio"}
 
-ROTATION_KEYS = {"angleDegrees", "axis"}
+# A rotation states its axis and exactly one angle: constant, or growing by a rate per axis.
+ROTATION_ANGLE_KEYS = {"angleDegrees", "angleDegreesPerLength"}
 
 # Rotation axis -> the coordinate axis it leaves fixed.
 ROTATION_AXES = {"x": 0, "y": 1, "z": 2}
@@ -171,9 +172,19 @@ def _validate_rotation(name, config, geometry):
     if rotation is None:
         return
 
-    if set(rotation) != ROTATION_KEYS:
-        raise ValueError(f"{name}: rotation must state exactly {sorted(ROTATION_KEYS)}, "
-                         f"got {sorted(rotation)}")
+    angles = set(rotation) & ROTATION_ANGLE_KEYS
+    if len(angles) != 1 or set(rotation) != {"axis"} | angles:
+        raise ValueError(f"{name}: rotation must state 'axis' and one of "
+                         f"{sorted(ROTATION_ANGLE_KEYS)}, got {sorted(rotation)}")
+    if "angleDegreesPerLength" in rotation:
+        # The pullback of a varying rotation is the polar rotation, in closed form in 2D only.
+        if geometry.spatial_dimensions != 2:
+            raise ValueError(f"{name}: a varying rotation is supported in 2D only")
+        unknown = [axis for axis in rotation["angleDegreesPerLength"]
+                   if ROTATION_AXES.get(axis, geometry.dim) >= geometry.dim]
+        if unknown:
+            raise ValueError(f"{name}: angleDegreesPerLength names {unknown}, "
+                             f"not axes of a {geometry.dim}D mesh")
     if rotation["axis"] not in ROTATION_AXES:
         raise ValueError(f"{name}: unknown rotation axis {rotation['axis']!r}, "
                          f"expected one of {sorted(ROTATION_AXES)}")
