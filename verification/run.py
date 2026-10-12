@@ -29,7 +29,8 @@ def run_all(directory, args):
 
     Returns [(name, study)], the study being None where that case raised.
     """
-    TESTED_COMPONENTS = ("LinearSmallStrainFEMForceField", "CorotationalFEMForceField")
+    TESTED_COMPONENTS = ("LinearSmallStrainFEMForceField", "CorotationalFEMForceField",
+                         "HyperelasticityFEMForceField")
 
     results = []
     for component in TESTED_COMPONENTS:
