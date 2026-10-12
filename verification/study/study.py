@@ -179,6 +179,14 @@ class MetricResult:
     passed: bool            # whether `order` matches the case's expected order, within tolerance
 
 
+@dataclass
+class AgreementResult:
+    """How closely one metric reproduced the record the case is held against."""
+
+    differences: list       # |current - reference| / |reference| per level, coarsest first
+    passed: bool            # whether every one of them is within the case's tolerance
+
+
 class ErrorConvergenceStudy:
     """Performs an error-convergence-rate study for a case: builds a SOFA scene and solves it for
     progressively refined meshes.
@@ -217,7 +225,9 @@ class ErrorConvergenceStudy:
         root = Sofa.Core.Node("root")
         mechanical = MMSScene(self.case, cells).build(root).mechanical_node()
         Sofa.Simulation.init(root)
-        Sofa.Simulation.animate(root, root.dt.value)
+        # One static solve per excitation increment.
+        for _ in range(self.case.excitation_steps_count):
+            Sofa.Simulation.animate(root, root.dt.value)
 
         self.measure(mechanical, _mesh_label(cells))
 
@@ -414,6 +424,7 @@ class ErrorConvergenceStudy:
                                   ha="left", va="top", fontsize=9, color=verdict)
 
         if any_discarded:
+            # An empty labelled line, so a subclass redrawing this legend picks it up by itself.
             axes.plot([], [], color=PLOT_DISCARDED, linewidth=2.0, label="pre-asymptotic regime")
             axes.legend(loc="lower right", frameon=False, fontsize=9, handlelength=1.6,
                         labelcolor=INK_SOFT)
@@ -451,7 +462,13 @@ class ErrorConvergenceStudy:
             figure, panels = plt.subplots(1, len(self.levels), figsize=(2.6 * len(self.levels), 3.0),
                                           squeeze=False, layout="constrained",
                                           subplot_kw={"projection": "3d"} if dim == 3 else {})
-            magnitudes = [np.linalg.norm(level.displacement, axis=-1) for level in self.levels]
+            # A rotated problem's rotation would dwarf its deformation in the colours: colour by the
+            # pulled-back displacement, R^T (X + u_h) - X.
+            rotation = self.case.manufactured_problem.rotation_field
+            magnitudes = [np.linalg.norm(level.displacement if rotation is None else
+                                         np.einsum('...ji,...j->...i', rotation(level.nodes),
+                                                   level.nodes + level.displacement) - level.nodes, axis=-1)
+                          for level in self.levels]
             # The finest level sets the scale: coarse levels overshoot and would stretch it.
             norm = Normalize(vmin=magnitudes[-1].min(), vmax=magnitudes[-1].max())
             for axes, level, magnitude in zip(panels[0], self.levels, magnitudes):
@@ -528,13 +545,113 @@ class ErrorConvergenceStudy:
             print(f"  Newton did not converge at: {', '.join(self.unconverged_levels)}")
 
 
+class NormAgreementStudy(ErrorConvergenceStudy):
+    """A convergence study that must also reproduce a recorded run's errors, level for level.
+
+    E.g. CorotationalFEMForceField should reproduce LinearSmallStrainFEMForceField solution on
+    unrotated frame.
+    """
+
+    def __init__(self, case):
+        super().__init__(case)
+
+        # Check whether the reference results exist
+        path = RESULTS_ROOT / f"{case.compare_against}.json"
+        if not path.exists():
+            raise FileNotFoundError(f"no record for {case.compare_against}: run that case before "
+                                    f"the one comparing to it")
+        self.reference = json.loads(path.read_text())
+        self.agreement_tolerance = case.agreement_tolerance
+        self.agreement = {}
+
+    def evaluate_metrics(self):
+        """The convergence verdict, then the agreement, which this case must also pass."""
+        super().evaluate_metrics()
+
+        current = [level.label for level in self.levels]
+        reference = [level["label"] for level in self.reference["levels"]]
+        if current != reference:
+            raise ValueError(f"{self.name}: compared against {self.reference['case']} over "
+                             f"different meshes, {current} against {reference}")
+
+        self.agreement = {}
+        for metric in METRICS:
+            differences = [abs(level.values[metric.name] - other["values"][metric.name])
+                           / abs(other["values"][metric.name])
+                           for level, other in zip(self.levels, self.reference["levels"])]
+            # The claim is made at every level, so one level outside the tolerance sinks the metric.
+            self.agreement[metric.name] = AgreementResult(
+                differences=differences,
+                passed=all(difference <= self.agreement_tolerance for difference in differences))
+
+        self.verified = self.verified and all(result.passed for result in self.agreement.values())
+
+    def record(self):
+        """The base convergence record, plus agreement with reference solution."""
+        return {**super().record(),
+                "against": self.reference["case"],
+                "agreementTolerance": self.agreement_tolerance,
+                "differences": {name: result.differences
+                                for name, result in self.agreement.items()}}
+
+    def plot(self, axes=None):
+        """The convergence figure, ringing the reference's value at every level compared."""
+        axes = super().plot(axes)
+        figure = axes.figure
+        spacings = [level.spacing for level in self.levels]
+        for metric in METRICS:
+            differences = self.agreement[metric.name].differences
+            for index, other in enumerate(self.reference["levels"]):
+                inside = differences[index] <= self.agreement_tolerance
+                axes.plot(spacings[index], other["values"][metric.name], marker="o", markersize=13,
+                          markerfacecolor="none", markeredgewidth=1.5,
+                          markeredgecolor=PLOT_ACCEPTED if inside else PLOT_DISCARDED, zorder=5)
+
+        agreed = all(result.passed for result in self.agreement.values())
+        axes.plot([], [], marker="o", markersize=13, markerfacecolor="none", markeredgewidth=1.5,
+                  markeredgecolor=PLOT_ACCEPTED if agreed else PLOT_DISCARDED, linestyle="none",
+                  label=f"within tolerance of {self.reference['forceField']}")
+        axes.legend(loc="lower right", frameon=False, fontsize=9, handlelength=1.6,
+                    labelcolor=INK_SOFT)
+        figure.tight_layout()
+        return axes
+
+    def report(self):
+        """The convergence table, then how closely this case reproduced its reference."""
+        super().report()
+
+        print()
+        print(f"  agreement with {self.reference['case']}")
+        header = f"{'# cells/axis':>{LABEL_WIDTH}} {'':>{SPACING_WIDTH}} {'':>{ELEMENTS_WIDTH}}"
+        for metric in METRICS:
+            header += f" {metric.name:>{RATE_WIDTH}}"
+        print(header)
+
+        blanks = f"{'':>{SPACING_WIDTH}} {'':>{ELEMENTS_WIDTH}}"
+        for index, level in enumerate(self.levels):
+            row = f"{level.label:>{LABEL_WIDTH}} {blanks}"
+            for metric in METRICS:
+                difference = self.agreement[metric.name].differences[index]
+                cell = f"{difference:>{RATE_WIDTH}.1e}"
+                row += f" {_paint(cell, difference <= self.agreement_tolerance)}"
+            print(row)
+
+        print()
+        print(f"{'tolerance':>{LABEL_WIDTH}} {blanks}"
+              + f" {self.agreement_tolerance:>{RATE_WIDTH}.1e}" * len(METRICS))
+
+
+# Whether a comparison case reproduced the run it was held against, as its overview cell.
+AGREEMENT = {True: "ok", False: "bad"}
+
+
 def overview(results):
     """Print one line per case: the order each metric settled on, and whether its solves converged."""
     print()
     header = f"{'case':<44}"
     for metric in METRICS:
         header += f" {metric.name:>9}"
-    print(header + f" {'solver':>9}")
+    print(header + f" {'solver':>9} {'agreement':>9}")
 
     for name, study in results:
         row = f"{name:<44}"
@@ -546,4 +663,10 @@ def overview(results):
         solver = "error" if study is None else (
             "ok" if not study.unconverged_levels else f"{len(study.unconverged_levels)} bad")
         row += f" {_paint(f'{solver:>9}', solver == 'ok')}"
+
+        # Only a comparison case makes this claim; the rest leave the column empty.
+        agreement = getattr(study, "agreement", None)
+        if agreement:
+            agreed = all(result.passed for result in agreement.values())
+            row += f" {_paint(f'{AGREEMENT[agreed]:>9}', agreed)}"
         print(row)
