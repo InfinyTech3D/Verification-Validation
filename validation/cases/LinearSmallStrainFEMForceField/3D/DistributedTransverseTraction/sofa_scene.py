@@ -100,11 +100,14 @@ def solve(case):
 
     x0 = mechanical.dofs.rest_position.array()[:, :3].copy()
     u = mechanical.dofs.position.array()[:, :3] - x0
-    return x0, u
+    boundary_kind_name, _ = ELEMENTS[case['element']].boundary_mappings[0]
+    boundary = mechanical.getChild(boundary_kind_name).topology
+    faces = getattr(boundary, ELEMENTS[boundary_kind_name].data_name).array().copy()
+    return x0, u, faces
 
 
 def main(case):
-    x, u = solve(case)
+    x, u, faces = solve(case)
     print(f"{case['element']}: solved {len(x)} nodes")
 
 

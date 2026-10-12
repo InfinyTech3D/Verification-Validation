@@ -11,6 +11,7 @@ for path in (CASE_DIR, REPO_ROOT):
 import numpy as np
 
 from common.geometry import Beam3D
+from common.sofa.conventions import ELEMENTS
 from common.sofa.prefabs import ElasticBeam
 
 PLUGINS = [
@@ -63,6 +64,12 @@ def build(root, case):
                              fixedDirections=[0, 0, 1])
         mechanical.addObject('ConstantForceField', name='pointLoad', indices=load_line,
                              forces=[[0.0, -case['load']['magnitude'], 0.0]] * len(load_line))
+
+        boundary_kind_name, mapping = ELEMENTS[case['element']].boundary_mappings[0]
+        with mechanical.addChild(boundary_kind_name) as boundary:
+            boundary.addObject(ELEMENTS[boundary_kind_name].container, name='topology')
+            boundary.addObject(ELEMENTS[boundary_kind_name].container.replace('Container', 'Modifier'))
+            boundary.addObject(mapping, input='@../topology', output='@topology')
     return mechanical
 
 
@@ -92,11 +99,14 @@ def solve(case):
 
     x0 = mechanical.dofs.rest_position.array()[:, :3].copy()
     u = mechanical.dofs.position.array()[:, :3] - x0
-    return x0, u
+    boundary_kind_name, _ = ELEMENTS[case['element']].boundary_mappings[0]
+    boundary = mechanical.getChild(boundary_kind_name).topology
+    faces = getattr(boundary, ELEMENTS[boundary_kind_name].data_name).array().copy()
+    return x0, u, faces
 
 
 def main(case):
-    x, u = solve(case)
+    x, u, faces = solve(case)
     print(f"{case['element']}: solved {len(x)} nodes")
 
 
