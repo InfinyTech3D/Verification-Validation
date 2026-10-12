@@ -1,0 +1,19 @@
+{
+  "tet": {
+    "geometry":   { "type": "Cylinder", "length": 1.0, "radius": 0.1 },
+    "element":    "tet",
+    "material":   { "type": "LinearElastic", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "LinearSmallStrainFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 1,
+                        "relativeInitialStoppingThreshold": 1e-6,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 0 },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "file": "beam_tet.msh", "size": 0.03 },
+    "load":       { "type": "torque", "magnitude": 0.001 },
+    "tolerance":  { "rms": 1e-10 }
+  }
+}
