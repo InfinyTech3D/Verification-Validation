@@ -1,4 +1,4 @@
-"""Post-init SOFA controllers."""
+"""Post-init SOFA controllers shared by both suites."""
 
 import Sofa.Core
 
