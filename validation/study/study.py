@@ -39,6 +39,7 @@ class ISFComparisonStudy:
         self.max = {}
         self.passed = {}
         self.plots = {}
+        self.solutions = {}
 
     def run(self, regenerate_fenics=False):
         with open(self.case_dir / 'case.json') as f:
@@ -62,6 +63,7 @@ class ISFComparisonStudy:
 
             sofa_scene = _load_module(self.case_dir / 'sofa_scene.py', f'sofa_scene_{self.name}')
             x_sofa, u_sofa = sofa_scene.solve(case)
+            self.solutions[element] = (x_sofa, u_sofa)
 
             assert np.allclose(x_sofa, x_fenics, atol=1e-8), \
                 "SOFA and FEniCS meshes disagree on node coordinates: comparison is not meaningful"
