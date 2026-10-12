@@ -8,7 +8,7 @@ from common.sofa.conventions import ELEMENTS
 
 from . import manufactured
 from .manufactured import ManufacturedProblem, rotation_matrix
-from .manufactured.materials import LinearElastic
+from .manufactured.materials import LinearElastic, MooneyRivlin, NeoHookean, Ogden, SaintVenantKirchhoff
 from .study.metrics import METRICS
 
 CASES_ROOT = pathlib.Path(__file__).parent / "cases"
@@ -18,7 +18,8 @@ GEOMETRIES = {cls.__name__: cls for cls in (Grid, Bar1D, Beam2D, Beam3D,
                                             Tire, Tire2D, Tire3D)}
 
 # case "material.type" -> material class, keyed by the class's own name.
-MATERIALS = {cls.__name__: cls for cls in (LinearElastic,)}
+MATERIALS = {cls.__name__: cls for cls in (LinearElastic, MooneyRivlin, NeoHookean, Ogden,
+                                          SaintVenantKirchhoff)}
 
 
 class _ManufacturedSolutionRegistry:
@@ -232,7 +233,8 @@ class Case:
             self.geometry.spatial_dimensions, rotation)
 
         self.element = config["element"]
-        self.material = config["material"]
+        component = material.sofa_component_name
+        self.material = config["material"] | ({"sofa_component_name": component} if component else {})
         self.force_field = config["forceField"]
         self.solvers = config["solvers"]
         self.mesh = config["mesh"]
