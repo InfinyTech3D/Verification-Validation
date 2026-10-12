@@ -107,3 +107,68 @@ class ApplyManufacturedTraction(Sofa.Core.Controller):
         self.point_load = self.node.addObject('ConstantForceField', name='traction',
                                               template=self.vec_type, indices=indices,
                                               forces=np.concatenate(tractions))
+
+
+class Excitation(Sofa.Core.Controller):
+    """Brings a mesh's loads up to their stated values over `steps_count` equal increments."""
+
+    def __init__(self, steps_count, source_term_controllers=(), traction_controllers=(),
+                 clamp_controllers=(), *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.steps_count = steps_count
+        self.step = 0
+        self.source_term_controllers = source_term_controllers
+        self.traction_controllers = traction_controllers
+        self.clamp_controllers = clamp_controllers
+        # Pairs of Data each load controller has, e.g.
+        # - The body force's sourceDensity.property,
+        # - The traction's stress.property or a point load's forces
+        # and their values at full excitation.
+        self.loads_at_full_excitation = []
+
+    def onSimulationInitDoneEvent(self, event):
+        if self.steps_count == 1:
+            return
+
+        load_data = [controller.density.property for controller in self.source_term_controllers]
+        for controller in self.traction_controllers:
+            if controller.nodal_stress is not None:
+                load_data.append(controller.nodal_stress.property)
+            elif controller.point_load is not None:
+                load_data.append(controller.point_load.forces)
+
+        # Read once the loads have written themselves: what full excitation means is their word.
+        self.loads_at_full_excitation = [(data, np.array(data.value)) for data in load_data]
+
+    def onAnimateBeginEvent(self, event):
+        """Applies the ramp: every load is brought to this step's share of its full value."""
+        # The loads already hold their full values; rewriting them would re-integrate for nothing.
+        if self.steps_count == 1:
+            return
+
+        self.step += 1
+        factor = min(1.0, self.step / self.steps_count)
+
+        for data, at_full_excitation in self.loads_at_full_excitation:
+            data.value = factor * at_full_excitation
+
+        # A Dirichlet condition prescribes a position rather than a magnitude, so its nodes are
+        # walked out from where the solve started instead of being scaled.
+        for controller in self.clamp_controllers:
+            if controller.displacement is None:
+                continue
+
+            rest_positions = controller.dofs.rest_position.array()
+            start_positions = controller.rigid_positions(rest_positions)
+            with controller.dofs.position.writeableArray() as pos:
+                for _, fixed_directions, constraint in controller.region_constraints:
+                    indices = constraint.indices.value
+                    if len(indices) == 0:
+                        continue
+
+                    rest, start = rest_positions[indices], start_positions[indices]
+                    target = rest + controller.displacement(rest)
+                    for axis, fixed in enumerate(fixed_directions):
+                        if fixed:
+                            pos[indices, axis] = (start[:, axis]
+                                                  + factor * (target[:, axis] - start[:, axis]))
