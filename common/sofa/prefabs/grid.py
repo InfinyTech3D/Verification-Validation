@@ -69,7 +69,7 @@ class ElasticGrid(ScenePrefab):
             body.addObject('MechanicalObject', name='dofs', template=VecType)
             # The force field under test.
             self.add_force_field(body, self.configs['forceField'], self.configs['material'],
-                                 template=f"{VecType},{element_kind.cpp}")
+                                 template=f"{VecType},{element_kind.cpp}", vec_template=VecType)
             # ODE & Linear Solvers
             self.add_solvers(body, self.configs['solvers'])
 
