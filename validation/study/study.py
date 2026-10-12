@@ -9,6 +9,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.collections import PolyCollection
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from .metrics import METRICS
 
@@ -62,7 +64,7 @@ class ISFComparisonStudy:
             x_fenics, u_fenics = np.array(reference['x']), np.array(reference['u'])
 
             sofa_scene = _load_module(self.case_dir / 'sofa_scene.py', f'sofa_scene_{self.name}')
-            x_sofa, u_sofa = sofa_scene.solve(case)
+            x_sofa, u_sofa, polygons = sofa_scene.solve(case)
             self.solutions[element] = (x_sofa, u_sofa)
 
             assert np.allclose(x_sofa, x_fenics, atol=1e-8), \
@@ -90,7 +92,7 @@ class ISFComparisonStudy:
             max_scale = np.max(np.abs(u_fenics)) or 1.0
             self.max[element] = np.max(np.abs(u_sofa - u_fenics)) / max_scale
 
-            self.plots[element] = self._plot(element, x_sofa, u_sofa, x_fenics, u_fenics, u_exact)
+            self.plots[element] = self._plot(element, x_sofa, u_sofa, polygons, u_fenics, u_exact)
         return self
 
     def write_results(self):
@@ -106,76 +108,80 @@ class ISFComparisonStudy:
             figure.savefig(directory / f"{name}.png")
             plt.close(figure)
 
-    def _plot(self, element, x_sofa, u_sofa, x_fenics, u_fenics, u_exact):
-        if x_sofa.ndim == 2:
-            sources = [('SOFA', x_sofa, u_sofa), ('FEniCS', x_fenics, u_fenics)]
+    def _plot(self, element, x, u_sofa, polygons, u_fenics, u_exact):
+        """`polygons` are the elements in 1D and 2D, and the boundary faces in 3D."""
+        if x.ndim == 1:
+            figure, axes = plt.subplots(figsize=(7, 5))
             if u_exact is not None:
-                sources.append(('Analytic', x_sofa, u_exact))
-            components = ['u_x', 'u_y', 'u_z'][:x_sofa.shape[1]]
-            title = f"{self.name}/{element}    rms = {self.results[element]['rms']:.2e}"
-
-            # 3D: plot only the x-y plane at mid-height, as a 2D grid with all three components.
-            # Every 3D case loads along x or y, so this plane carries the deformation; the rms still
-            # covers all nodes. The nearest node layer is taken, so no value is interpolated.
-            if x_sofa.shape[1] == 3:
-                z_layers = np.unique(x_sofa[:, 2].round(10))
-                z_mid = z_layers[len(z_layers) // 2]
-                sources = [(label, x[np.isclose(x[:, 2], z_mid)], u[np.isclose(x[:, 2], z_mid)])
-                           for label, x, u in sources]
-                title += f"    slice z = {z_mid:.3g}"
-
-            # Nodes follow the grid order i + nx*j: a Delaunay triangulation would add slivers on the boundary.
-            nx = len(np.unique(x_sofa[:, 0].round(10)))
-            shape = (-1, nx)
-
-            extent = np.ptp(sources[0][1], axis=0)
-            panel_width = 4.5
-            panel_height = panel_width * extent[1] / extent[0] + 0.5
-            figure, axes = plt.subplots(len(sources), len(components), squeeze=False, sharex=True, sharey=True,
-                                        figsize=(panel_width * len(components) + 0.5,
-                                                 panel_height * len(sources) + 1.2),
-                                        layout='constrained')
-
-            for column, component in enumerate(components):
-                # Shared colour scale per component, so the solvers compare at a glance.
-                values = [u[:, column] for _, _, u in sources]
-                vmin, vmax = min(v.min() for v in values), max(v.max() for v in values)
-                # A component constant over the plot (u_z at mid-height) would stretch round-off over the colour map.
-                span = 1e-6 * max(np.abs(u).max() for _, _, u in sources)
-                if vmax - vmin < span:
-                    vmin, vmax = (vmin + vmax - span) / 2, (vmin + vmax + span) / 2
-                for row, (label, x, u) in enumerate(sources):
-                    ax = axes[row, column]
-                    image = ax.pcolormesh(x[:, 0].reshape(shape), x[:, 1].reshape(shape),
-                                          u[:, column].reshape(shape),
-                                          shading='gouraud', cmap='viridis', vmin=vmin, vmax=vmax)
-                    ax.set_aspect('equal')
-                    if row == 0:
-                        ax.set_title(f'${component}$')
-                    if column == 0:
-                        ax.set_ylabel(f'{label}\ny')
-                    if row == len(sources) - 1:
-                        ax.set_xlabel('x')
-                colorbar = figure.colorbar(image, ax=axes[:, column], location='bottom', shrink=0.8)
-                colorbar.ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(5))
-                colorbar.ax.ticklabel_format(axis='x', style='sci', scilimits=(0, 0))
-
-            figure.suptitle(title)
+                plot_1d(axes, x, u_exact, polygons, 'k--', lw=1, label='analytic')
+            plot_1d(axes, x, u_fenics, polygons, 's', mfc='none', mec='tab:blue', ms=8, mew=1.5, label='FEniCS')
+            plot_1d(axes, x, u_sofa, polygons, '+', color='tab:red', ms=8, mew=1.5, label='SOFA')
+            axes.set_xlabel('x')
+            axes.set_ylabel('u')
+            axes.set_title(f'{self.name}/{element}')
+            axes.legend()
+            axes.grid(alpha=.3)
+            axes.annotate(f"rms = {self.results[element]['rms']:.2e}", xy=(.04, .92),
+                          xycoords='axes fraction', fontsize=9, color='dimgray')
             return figure
 
-        figure, axes = plt.subplots(figsize=(7, 5))
+        sources = [('SOFA', u_sofa), ('FEniCS', u_fenics)]
         if u_exact is not None:
-            axes.plot(x_sofa, u_exact, 'k--', lw=1, label='analytic')
-        axes.plot(x_fenics, u_fenics, 's', mfc='none', mec='tab:blue', ms=8, mew=1.5, label='FEniCS')
-        axes.plot(x_sofa, u_sofa, '+', color='tab:red', ms=8, mew=1.5, label='SOFA')
-        axes.set_xlabel('x')
-        axes.set_ylabel('u')
-        axes.set_title(f'{self.name}/{element}')
-        axes.legend()
-        axes.grid(alpha=.3)
-        axes.annotate(f"rms = {self.results[element]['rms']:.2e}", xy=(.04, .92),
-                      xycoords='axes fraction', fontsize=9, color='dimgray')
+            sources.append(('Analytic', u_exact))
+        dim = x.shape[1]
+        components = ['u_x', 'u_y', 'u_z'][:dim]
+
+        extent = np.ptp(x, axis=0)
+        panel_width = 4.5
+        panel_height = panel_width * extent[1] / extent[0] + 0.5 if dim == 2 else 3.5
+        figure, axes = plt.subplots(len(sources), len(components), squeeze=False,
+                                    figsize=(panel_width * len(components) + 0.5,
+                                             panel_height * len(sources) + 1.2),
+                                    layout='constrained', subplot_kw={'projection': '3d'} if dim == 3 else {})
+        plot = plot_2d if dim == 2 else plot_3d
+
+        for column, component in enumerate(components):
+            # Shared colour scale per component, so the solvers compare at a glance.
+            values = [u[:, column] for _, u in sources]
+            vmin, vmax = min(v.min() for v in values), max(v.max() for v in values)
+            # A component constant over the plot would stretch round-off over the colour map.
+            span = 1e-6 * max(np.abs(u).max() for _, u in sources)
+            if vmax - vmin < span:
+                vmin, vmax = (vmin + vmax - span) / 2, (vmin + vmax + span) / 2
+            for row, (label, u) in enumerate(sources):
+                image = plot(axes[row, column], x, u[:, column], polygons, cmap='viridis',
+                             norm=plt.Normalize(vmin, vmax))
+                axes[row, column].set_title(f'{label}: ${component}$')
+            colorbar = figure.colorbar(image, ax=axes[:, column], location='bottom', shrink=0.8)
+            colorbar.ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(5))
+            colorbar.ax.ticklabel_format(axis='x', style='sci', scilimits=(0, 0))
+
+        figure.suptitle(f"{self.name}/{element}    rms = {self.results[element]['rms']:.2e}")
         return figure
+
+
+def plot_1d(ax, x, values, edges, *args, **kwargs):
+    """Nodal `values` along the `edges`, as one line broken between edges."""
+    gap = np.full((len(edges), 1), np.nan)
+    return ax.plot(np.hstack([x[edges], gap]).ravel(), np.hstack([values[edges], gap]).ravel(), *args, **kwargs)
+
+
+def plot_2d(ax, x, values, elements, **kwargs):
+    """Colour map of nodal `values` over the triangles or quads `elements`; each takes the mean of its nodes."""
+    collection = ax.add_collection(PolyCollection(x[elements], array=values[elements].mean(axis=1), **kwargs))
+    ax.autoscale_view()
+    ax.set_aspect('equal')
+    return collection
+
+
+def plot_3d(ax, x, values, faces, **kwargs):
+    """Colour map of nodal `values` over the boundary `faces`, y upwards; each takes the mean of its nodes."""
+    view = x[:, [0, 2, 1]]
+    collection = ax.add_collection3d(Poly3DCollection(view[faces], array=values[faces].mean(axis=1), **kwargs))
+    ax.auto_scale_xyz(*view.T)
+    ax.set_box_aspect(np.ptp(view, axis=0))
+    ax.set(xlabel='x', ylabel='z', zlabel='y')
+    return collection
 
 
 def _paint(cell, accepted):

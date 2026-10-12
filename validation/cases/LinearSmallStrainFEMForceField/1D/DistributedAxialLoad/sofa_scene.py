@@ -9,7 +9,7 @@ for path in (CASE_DIR, REPO_ROOT):
         sys.path.insert(0, path)
 
 from common.geometry import Bar1D
-from common.sofa.conventions import VEC_DIM
+from common.sofa.conventions import ELEMENTS, VEC_DIM
 from common.sofa.controllers import RegionClamp
 from common.sofa.prefabs import ElasticBar
 
@@ -77,11 +77,12 @@ def solve(case):
 
     x = mechanical.dofs.rest_position.array()[:, 0].copy()
     u = mechanical.dofs.position.array()[:, 0] - x
-    return x, u
+    cells = getattr(mechanical.topology, ELEMENTS[case['element']].data_name).array().copy()
+    return x, u, cells
 
 
 def main(case):
-    x, u = solve(case)
+    x, u, cells = solve(case)
     print(f"{case['element']}: solved {len(x)} nodes")
 
 

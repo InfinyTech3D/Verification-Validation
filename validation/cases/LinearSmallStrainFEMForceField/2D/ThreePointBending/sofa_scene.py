@@ -11,6 +11,7 @@ for path in (CASE_DIR, REPO_ROOT):
 import numpy as np
 
 from common.geometry import Beam2D
+from common.sofa.conventions import ELEMENTS
 from common.sofa.prefabs import ElasticBeam
 
 PLUGINS = [
@@ -82,11 +83,12 @@ def solve(case):
 
     x0 = mechanical.dofs.rest_position.array()[:, :2].copy()
     u = mechanical.dofs.position.array()[:, :2] - x0
-    return x0, u
+    cells = getattr(mechanical.topology, ELEMENTS[case['element']].data_name).array().copy()
+    return x0, u, cells
 
 
 def main(case):
-    x, u = solve(case)
+    x, u, cells = solve(case)
     print(f"{case['element']}: solved {len(x)} nodes")
 
 
