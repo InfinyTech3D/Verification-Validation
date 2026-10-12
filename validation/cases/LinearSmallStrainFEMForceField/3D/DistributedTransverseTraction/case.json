@@ -13,7 +13,7 @@
       "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
     },
     "mesh":       { "resolution": [11, 5, 5] },
-    "load":       { "type": "distributedTransverseTraction", "magnitude": 0.05 },
+    "load":       { "type": "distributedTransverseTraction", "magnitude": 1.0 },
     "tolerance":  { "rms": 1e-10 }
   },
   "tet": {
@@ -32,7 +32,7 @@
       "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
     },
     "mesh":       { "resolution": [11, 5, 5] },
-    "load":       { "type": "distributedTransverseTraction", "magnitude": 0.05 },
+    "load":       { "type": "distributedTransverseTraction", "magnitude": 1.0 },
     "tolerance":  { "rms": 1e-10 }
   }
 }

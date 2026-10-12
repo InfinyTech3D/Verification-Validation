@@ -13,7 +13,7 @@
       "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
     },
     "mesh":       { "file": "beam_tet.msh", "size": 0.03 },
-    "load":       { "type": "axialTraction", "magnitude": 20.0 },
+    "load":       { "type": "axialTraction", "magnitude": 200.0 },
     "tolerance":  { "rms": 1e-10 }
   }
 }
