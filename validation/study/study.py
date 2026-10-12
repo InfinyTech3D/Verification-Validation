@@ -149,7 +149,7 @@ class ISFComparisonStudy:
             if vmax - vmin < span:
                 vmin, vmax = (vmin + vmax - span) / 2, (vmin + vmax + span) / 2
             for row, (label, u) in enumerate(sources):
-                image = plot(axes[row, column], x, u[:, column], polygons, cmap='viridis',
+                image = plot(axes[row, column], x, u, u[:, column], polygons, cmap='viridis',
                              norm=plt.Normalize(vmin, vmax))
                 axes[row, column].set_title(f'{label}: ${component}$')
             colorbar = figure.colorbar(image, ax=axes[:, column], location='bottom', shrink=0.8)
@@ -166,17 +166,20 @@ def plot_1d(ax, x, values, edges, *args, **kwargs):
     return ax.plot(np.hstack([x[edges], gap]).ravel(), np.hstack([values[edges], gap]).ravel(), *args, **kwargs)
 
 
-def plot_2d(ax, x, values, elements, **kwargs):
-    """Colour map of nodal `values` over the triangles or quads `elements`; each takes the mean of its nodes."""
-    collection = ax.add_collection(PolyCollection(x[elements], array=values[elements].mean(axis=1), **kwargs))
+def plot_2d(ax, x, u, values, elements, **kwargs):
+    """Colour map of nodal `values` over the triangles or quads `elements`, deformed by `u`; each takes the mean
+    of its nodes."""
+    deformed = x + u
+    collection = ax.add_collection(PolyCollection(deformed[elements], array=values[elements].mean(axis=1), **kwargs))
     ax.autoscale_view()
     ax.set_aspect('equal')
     return collection
 
 
-def plot_3d(ax, x, values, faces, **kwargs):
-    """Colour map of nodal `values` over the boundary `faces`, y upwards; each takes the mean of its nodes."""
-    view = x[:, [0, 2, 1]]
+def plot_3d(ax, x, u, values, faces, **kwargs):
+    """Colour map of nodal `values` over the boundary `faces`, deformed by `u`, y upwards; each takes the mean
+    of its nodes."""
+    view = (x + u)[:, [0, 2, 1]]
     collection = ax.add_collection3d(Poly3DCollection(view[faces], array=values[faces].mean(axis=1), **kwargs))
     ax.auto_scale_xyz(*view.T)
     ax.set_box_aspect(np.ptp(view, axis=0))
