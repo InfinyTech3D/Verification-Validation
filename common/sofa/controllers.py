@@ -14,11 +14,13 @@ class RegionClamp(Sofa.Core.Controller):
     """
 
     def __init__(self, geometry, dofs, node, prescribe_displacement_on, vec_type,
-                 displacement=None, *args, **kwargs):
+                 displacement=None, rigid_positions=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.geometry = geometry
         self.dofs = dofs
         self.displacement = displacement
+        # rest -> the configuration the solve starts from, itself when the problem is not rotated.
+        self.rigid_positions = rigid_positions or (lambda rest: rest)
 
         # Fix dofs partially as determined by MMS `prescribe_displacement_on`
         self.region_constraints = []
@@ -34,6 +36,10 @@ class RegionClamp(Sofa.Core.Controller):
 
         # Apply non-zero Dirichlet BC: Move each fixed direction to rest + u; rest_position is untouched.
         with self.dofs.position.writeableArray() as pos:
+            # Move the initial positions after applying a rigid frame rotation.
+            # TODO Placing the whole mesh does not belong to a boundary clamp. Done here for now.
+            pos[:] = self.rigid_positions(rest_positions)
+
             for region, fixed_directions, constraint in self.region_constraints:
                 indices = self.geometry.region_indices(region, rest_positions)
 
