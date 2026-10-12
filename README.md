@@ -10,6 +10,9 @@ The error must shrink at the rate the discretisation predicts. Covered force fie
 
 To get started, read [`verification/docs/IntroductionMMS.ipynb`](verification/docs/IntroductionMMS.ipynb): it presents the method and builds one verification study step by step, from the manufactured solution to the input file the suite runs.
 
+The following force field components are currently verified within this repository:
+- `LinearSmallStrainFEMForceField` [`verification/docs/LinearSmallStrainFEMForceField.ipynb`](verification/docs/LinearSmallStrainFEMForceField.ipynb)
+
 ## Layout
 
 ```
