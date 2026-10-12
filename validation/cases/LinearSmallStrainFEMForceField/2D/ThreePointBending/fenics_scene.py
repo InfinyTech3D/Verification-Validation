@@ -41,21 +41,23 @@ def build(case):
     L = ufl.inner(fem.Constant(domain, default_scalar_type((0.0, 0.0))), v) * ufl.dx
 
     length = geometry.length
-    pinned = fem.locate_dofs_geometrical(
-        V, lambda x: np.isclose(x[0], 0.0) & np.isclose(x[1], 0.0))
-    bc_pin = fem.dirichletbc(np.zeros(2, dtype=default_scalar_type), pinned, V)
-
+    Vx, _ = V.sub(0).collapse()
     Vy, _ = V.sub(1).collapse()
-    roller, _ = fem.locate_dofs_geometrical(
-        (V.sub(1), Vy), lambda x: np.isclose(x[0], length) & np.isclose(x[1], 0.0))
-    bc_roller = fem.dirichletbc(default_scalar_type(0.0), roller, V.sub(1))
+    rollers, _ = fem.locate_dofs_geometrical(
+        (V.sub(1), Vy), lambda x: (np.isclose(x[0], 0.0) | np.isclose(x[0], length)) & np.isclose(x[1], 0.0))
+    bc_rollers = fem.dirichletbc(default_scalar_type(0.0), rollers, V.sub(1))
+
+    # Removes the rigid translation along x while keeping the solution symmetric about the midspan
+    anchor, _ = fem.locate_dofs_geometrical(
+        (V.sub(0), Vx), lambda x: np.isclose(x[0], length / 2) & np.isclose(x[1], 0.0))
+    bc_anchor = fem.dirichletbc(default_scalar_type(0.0), anchor, V.sub(0))
 
     # The point load is applied on the midspan. This restricts the use of an odd number of nodes.
     midspan_dofs, _ = fem.locate_dofs_geometrical(
         (V.sub(1), Vy), lambda x: np.isclose(x[0], length / 2) & np.isclose(x[1], geometry.width))
     load_dof = midspan_dofs[0]
 
-    return grid, V, a, L, [bc_pin, bc_roller], load_dof
+    return grid, V, a, L, [bc_rollers, bc_anchor], load_dof
 
 
 def solve(case):
