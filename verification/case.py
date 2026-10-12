@@ -7,7 +7,7 @@ from common.geometry import Grid, Bar1D, Beam2D, Beam3D, Tire, Tire2D, Tire3D
 from common.sofa.conventions import ELEMENTS
 
 from . import manufactured
-from .manufactured import ManufacturedProblem
+from .manufactured import ManufacturedProblem, rotation_matrix
 from .manufactured.materials import LinearElastic
 from .study.metrics import METRICS
 
@@ -46,11 +46,21 @@ REQUIRED = {"geometry", "element", "solution", "material", "forceField",
             "asymptoticTolerance", "expectedOrder", "expectedOrderTolerance", "relativeNoiseFloor"}
 
 OPTIONAL = {
-        "tractionOn"      # {region: directions} handed to the manufactured traction; the rest stay Dirichlet.
+        "excitationSteps" # equal increments the loads are applied in; absent means one.
+        , "tractionOn"    # {region: directions} handed to the manufactured traction; the rest stay Dirichlet.
+        , "rotation"      # a rigid rotation of the whole problem; its absence is the statement.
         , "gridMapping"   # Data for the mapping meshing the grid, where the element kind needs one.
+        , "compareAgainst"      # case whose recorded errors this one must reproduce, level for level.
+        , "agreementTolerance"  # the largest relative difference from that record still counted as agreement.
 }
 
 MESH_KEYS = {"cells", "levels", "refinementRatio"}
+
+# A rotation states its axis and exactly one angle: constant, or growing by a rate per axis.
+ROTATION_ANGLE_KEYS = {"angleDegrees", "angleDegreesPerLength"}
+
+# Rotation axis -> the coordinate axis it leaves fixed.
+ROTATION_AXES = {"x": 0, "y": 1, "z": 2}
 
 
 
@@ -70,6 +80,10 @@ def _validate(name, config):
     unknown = set(config) - REQUIRED - OPTIONAL
     if unknown:
         problems.append(f"unknown {sorted(unknown)}")
+
+    steps_count = config.get("excitationSteps", 1)
+    if not isinstance(steps_count, int) or steps_count < 1:
+        problems.append(f"excitationSteps must be a positive integer, got {steps_count!r}")
 
     # A grid-native element kind is meshed by no mapping, so its Data would go nowhere.
     element = config.get("element")
@@ -111,6 +125,11 @@ def _validate(name, config):
     if clash:
         problems.append(f"forceField and material both state {sorted(clash)}: state them in material")
 
+    # Check that comparisonAgainst is paired with agreementTolerance
+    comparison = {"compareAgainst", "agreementTolerance"} & set(config)
+    if comparison and len(comparison) == 1:
+        problems.append(f"{sorted(comparison)[0]} needs the other of compareAgainst/agreementTolerance")
+
     # expectedOrder: one entry per registered metric, exactly.
     names = {metric.name for metric in METRICS}
     if "expectedOrder" in config and set(config["expectedOrder"]) != names:
@@ -126,6 +145,10 @@ def _validate_boundary_conditions(name, config, geometry):
     traction_on = config.get("tractionOn", {})
     problems = []
 
+    # TODO A rotated stress is not symmetric, and NodalStress only carries a symmetric tensor.
+    if traction_on and "rotation" in config:
+        problems.append("a rotated problem cannot state tractionOn: its stress is not symmetric")
+
     unknown = set(traction_on) - set(geometry.region_names)
     if unknown:
         problems.append(f"tractionOn names {sorted(unknown)}, not regions of "
@@ -140,6 +163,36 @@ def _validate_boundary_conditions(name, config, geometry):
 
     if problems:
         raise ValueError(f"{name}: " + "; ".join(problems))
+
+
+def _validate_rotation(name, config, geometry):
+    """Validate whether the case's rotation is well formed."""
+    rotation = config.get("rotation")
+    if rotation is None:
+        return
+
+    angles = set(rotation) & ROTATION_ANGLE_KEYS
+    if len(angles) != 1 or set(rotation) != {"axis"} | angles:
+        raise ValueError(f"{name}: rotation must state 'axis' and one of "
+                         f"{sorted(ROTATION_ANGLE_KEYS)}, got {sorted(rotation)}")
+    if "angleDegreesPerLength" in rotation:
+        # The pullback of a varying rotation is the polar rotation, in closed form in 2D only.
+        if geometry.spatial_dimensions != 2:
+            raise ValueError(f"{name}: a varying rotation is supported in 2D only")
+        unknown = [axis for axis in rotation["angleDegreesPerLength"]
+                   if ROTATION_AXES.get(axis, geometry.dim) >= geometry.dim]
+        if unknown:
+            raise ValueError(f"{name}: angleDegreesPerLength names {unknown}, "
+                             f"not axes of a {geometry.dim}D mesh")
+    if rotation["axis"] not in ROTATION_AXES:
+        raise ValueError(f"{name}: unknown rotation axis {rotation['axis']!r}, "
+                         f"expected one of {sorted(ROTATION_AXES)}")
+
+    fixed = ROTATION_AXES[rotation["axis"]]
+    turned = sorted(axis for axis, index in ROTATION_AXES.items() if index != fixed)
+    if max(ROTATION_AXES[axis] for axis in turned) >= geometry.dim:
+        raise ValueError(f"{name}: a rotation about {rotation['axis']} turns the "
+                         f"{' and '.join(turned)} axes, which a {geometry.dim}D mesh does not span")
 
 
 class Case:
@@ -161,6 +214,7 @@ class Case:
         self.geometry = GEOMETRIES[geometry_config.pop("type")](**geometry_config)
 
         _validate_boundary_conditions(self.name, config, self.geometry)
+        _validate_rotation(self.name, config, self.geometry)
 
         # Keyed on the geometry's topological dimension.
         self.traction_on = config.get("tractionOn", {})
@@ -173,11 +227,13 @@ class Case:
                              f"which leaves the problem singular")
 
         # ManufacturedProblem Class
+        rotation = (rotation_matrix(config["rotation"], self.geometry.spatial_dimensions)
+                    if "rotation" in config else None)
         material = MATERIALS[config["material"]["type"]]
         self.manufactured_problem = ManufacturedProblem(
             solution, material(*material.get_material_parameters(
                 config["material"], self.geometry.spatial_dimensions)),
-            self.geometry.spatial_dimensions)
+            self.geometry.spatial_dimensions, rotation)
 
         self.element = config["element"]
         self.material = config["material"]
@@ -190,7 +246,10 @@ class Case:
         self.expected_order = config["expectedOrder"]
         self.expected_order_tolerance = config["expectedOrderTolerance"]
         self.relative_noise_floor = config["relativeNoiseFloor"]
+        self.excitation_steps_count = config.get("excitationSteps", 1)
         self.grid_mapping = config.get("gridMapping", {})
+        self.compare_against = config.get("compareAgainst")
+        self.agreement_tolerance = config.get("agreementTolerance")
 
     @classmethod
     def load(cls, path):
