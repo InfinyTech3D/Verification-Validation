@@ -18,14 +18,18 @@ class Measurement:
         # The FEM displacement and its gradient, interpolated from the field SOFA solved for to the
         # quadrature points.
         self.u_h = quadrature.values(displacement)
-        self.grad_h = quadrature.grads(displacement)
+        # Transofrm gradient back into the frame the material law is applied in to measure strain in
+        # the unrotated frame.
+        self.grad_h = manufactured_problem.local_gradient(quadrature.grads(displacement),
+                                                         quadrature.points)
         # The strain energy SOFA reports for that same solution, from its own element stiffness.
         self.energy_h = energy_h
 
         # The manufactured solution's analytical displacement and gradient, evaluated at those same
         # points.
         self.u_exact = quadrature.sample(manufactured_problem.u)
-        self.grad_exact = quadrature.sample(manufactured_problem.grad_u)
+        self.grad_exact = manufactured_problem.local_gradient(
+            quadrature.sample(manufactured_problem.grad_u), quadrature.points)
 
         # u_error/grad_error are what a metric measures.
         # u_exact/grad_exact (not the error) set its noise floor, computed through the same norm
