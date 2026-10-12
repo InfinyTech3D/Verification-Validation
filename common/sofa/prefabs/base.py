@@ -25,10 +25,21 @@ class ScenePrefab(Sofa.Prefab):
         raise NotImplementedError
 
     @staticmethod
-    def add_force_field(node, config, material, template):
+    def add_force_field(node, config, material, template, vec_template=None):
         """The *FEMForceField component under test, its Data merged from `config` and `material`"""
+        component = material.get('sofa_component_name')
+
+        # *FEMForceField does not link to a material e.g. LinearSmallStrainFEMForceField
+        if component is None:
+            node.addObject(config['type'], name='fem', template=template, topology='@topology',
+                           **params(material), **params(config))
+            return
+
+        # *FEMForceField links to a material e.g. HyperelasticityFEMForceField
+        node.addObject(component, name='material', template=vec_template,
+                       **params(material, 'sofa_component_name'))
         node.addObject(config['type'], name='fem', template=template, topology='@topology',
-                       **params(material), **params(config))
+                       material='@material', **params(config))
 
     @staticmethod
     def add_solvers(node, config):
