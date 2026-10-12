@@ -12,7 +12,7 @@
     "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
   },
   "mesh":       { "resolution": [10, 1, 1] },
-  "load":       { "type": "distributedAxial", "magnitude": 1000.0 },
+  "load":       { "type": "distributedAxial", "magnitude": 400000.0 },
   "tolerance":         { "rms": 1e-10 },
   "toleranceAnalytic": { "rms": 1e-10 }
 }
