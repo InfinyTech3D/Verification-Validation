@@ -3,3 +3,6 @@
 
 # a run's own output
 verification/results/
+
+# a validation run's own output
+validation/**/results/
