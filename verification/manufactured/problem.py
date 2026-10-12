@@ -11,15 +11,39 @@ _COORDINATES = sp.symbols("x y z")
 
 _COMPONENT_NAMES = ("u_x", "u_y", "u_z")
 
+# Rotation axis -> the two axes it turns, ordered to yield positive angle in right-handed system.
+_ROTATION_PLANE = {"x": (1, 2), "y": (2, 0), "z": (0, 1)}
+
+
+def rotation_matrix(config, dimensions):
+    """The rotation of a case's `rotation` block: constant by `angleDegrees`, or a field whose angle
+    grows linearly, by `angleDegreesPerLength[axis]` along each axis named there.
+    """
+    if "angleDegreesPerLength" in config:
+        angle = sum(sp.rad(sp.Rational(str(rate))) * _COORDINATES["xyz".index(axis)]
+                    for axis, rate in config["angleDegreesPerLength"].items())
+    else:
+        angle = sp.rad(sp.Rational(str(config["angleDegrees"])))
+    cosine, sine = sp.cos(angle), sp.sin(angle)
+
+    matrix = sp.eye(dimensions)
+    first, second = _ROTATION_PLANE[config["axis"]] if dimensions == 3 else (0, 1)
+    matrix[first, first] = cosine
+    matrix[first, second] = -sine
+    matrix[second, first] = sine
+    matrix[second, second] = cosine
+    return matrix
+
 
 class ManufacturedProblem:
     """A manufactured solution paired with a material. This pairing determines displacement
     gradient, stress, body-force source, and energy density.
     """
 
-    def __init__(self, solution, material, spatial_dimensions):
+    def __init__(self, solution, material, spatial_dimensions, rotation=None):
         self.solution = solution
         self.material = material
+        self.rotation = rotation
         dimensions = spatial_dimensions
 
         self.coordinates = sp.Matrix(_COORDINATES[:dimensions])
@@ -34,7 +58,22 @@ class ManufacturedProblem:
         components += [0] * (dimensions - self.solution.dim)
 
         displacement = sp.Matrix(components)
-        stress = material.stress(displacement.jacobian(self.coordinates))
+        # The rotation the material law is pulled back by: the rotation itself when constant.
+        pullback = rotation
+        if rotation is None:
+            stress = material.stress(displacement.jacobian(self.coordinates))
+        elif not rotation.free_symbols:
+            # Build stress using the unrotated gradient
+            stress = rotation * material.stress(displacement.jacobian(self.coordinates))
+            displacement = rotation * (self.coordinates + displacement) - self.coordinates
+        else:
+            # A varying rotation strains the body, so it is no longer the rotation to pull back by:
+            # the polar rotation of the deformation gradient is, in closed form in 2D.
+            displacement = rotation * (self.coordinates + displacement) - self.coordinates
+            deformation = sp.eye(dimensions) + displacement.jacobian(self.coordinates)
+            trace, skew = deformation[0, 0] + deformation[1, 1], deformation[1, 0] - deformation[0, 1]
+            pullback = sp.Matrix([[trace, -skew], [skew, trace]]) / sp.sqrt(trace ** 2 + skew ** 2)
+            stress = pullback * material.stress(pullback.T * deformation - sp.eye(dimensions))
 
         # Keep a symbolic representation of the displacement: `equation` reads off this directly.
         self.displacement_expression = displacement
@@ -51,6 +90,30 @@ class ManufacturedProblem:
         self.stress = self._compile_field(stress, (dimensions, dimensions))
         self.source = self._compile_field(source, (dimensions,))
         self.energy_density, self.tangent = compile_laws(material, dimensions)
+        self.rotation_field = None if rotation is None else self._compile_field(rotation, (dimensions, dimensions))
+        self.pullback = None if pullback is None else self._compile_field(pullback, (dimensions, dimensions))
+
+    def rigid_positions(self, rest):
+        """R X: the rest configuration turned by this problem's rotation, itself where there is none.
+
+        The configuration a corotational force field reads as undeformed, so the solve starts there.
+        """
+        if self.rotation is None:
+            return rest
+        rest = np.asarray(rest)
+        return np.einsum('...ij,...j->...i', self.rotation_field(rest), rest)
+
+    def local_gradient(self, gradients, points):
+        """Displacement gradients at `points` in the frame the material law is applied in:
+        R^T (I + G) - I, R the pullback there.
+
+        Recovers the unrotated gradient, so the norms measure strain rather than the rotation.
+        """
+        if self.pullback is None:
+            return gradients
+        identity = np.eye(len(self.coordinates))
+        return np.einsum('...ji,...jk->...ik', self.pullback(points),
+                         identity + np.asarray(gradients)) - identity
 
     # The regions to apply BCs are further stated by its solution object.
     @property
