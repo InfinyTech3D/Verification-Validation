@@ -13,7 +13,7 @@
       "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
     },
     "mesh":       { "resolution": [21, 9, 1] },
-    "load":       { "type": "distributedTransverseTraction", "magnitude": 0.05 },
+    "load":       { "type": "distributedTransverseTraction", "magnitude": 1.0 },
     "tolerance":  { "rms": 1e-10 }
   },
   "tri": {
@@ -31,7 +31,7 @@
       "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
     },
     "mesh":       { "resolution": [21, 9, 1] },
-    "load":       { "type": "distributedTransverseTraction", "magnitude": 0.05 },
+    "load":       { "type": "distributedTransverseTraction", "magnitude": 1.0 },
     "tolerance":  { "rms": 1e-10 }
   }
 }

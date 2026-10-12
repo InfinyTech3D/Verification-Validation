@@ -13,7 +13,7 @@
       "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
     },
     "mesh":       { "file": "beam_tet.msh", "size": 0.03 },
-    "load":       { "type": "torque", "magnitude": 0.001 },
+    "load":       { "type": "torque", "magnitude": 0.05 },
     "tolerance":  { "rms": 1e-10 }
   }
 }
