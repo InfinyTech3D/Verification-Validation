@@ -1,0 +1,32 @@
+{
+  "geometry":    { "type": "Tire3D", "inner_radius": 0.25, "outer_radius": 0.5, "extrusion_length": 0.25 },
+  "element":     "tet",
+  "material":    { "type": "LinearElastic", "youngModulus": 1.0, "poissonRatio": 0.3 },
+  "forceField":  { "type": "LinearSmallStrainFEMForceField" },
+  "tractionOn":  { "front": [1, 1, 1], "back": [1, 1, 1] },
+  "solution":    { "type": "Quartic", "amplitude": 1.0 },
+  "errorQuadratureDegree": 2,
+  "sourceQuadratureDegree": 2,
+  "solvers": {
+    "integration":  { "type": "StaticSolver" },
+    "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 1,
+                      "relativeInitialStoppingThreshold": 1e-6,
+                      "relativeSuccessiveStoppingThreshold": 0,
+                      "absoluteResidualStoppingThreshold": 0,
+                      "printLog": false },
+    "linearSolver": {
+      "type": "PCGLinearSolver", "iterations": 1000, "tolerance": 1e-24, "printLog": false,
+      "system": { "type": "PreconditionedMatrixFreeSystem" },
+      "preconditioner": {
+        "type": "SSORPreconditioner",
+        "system": { "type": "MatrixLinearSystem", "template": "CompressedRowSparseMatrixd" }
+      }
+    }
+  },
+  "gridMapping": { "swapping": true },
+  "mesh":        { "cells": [2, 16, 2], "levels": 4, "refinementRatio": 2 },
+  "asymptoticTolerance": 0.10,
+  "expectedOrder": { "L2": 2.0, "H1": 1.0, "EnergyDifference": 1.0 },
+  "expectedOrderTolerance": 0.15,
+  "relativeNoiseFloor": 1e-10
+}
