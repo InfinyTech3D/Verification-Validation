@@ -24,12 +24,14 @@ class ScenePrefab(Sofa.Prefab):
     def mechanical_node(self):
         raise NotImplementedError
 
-    def add_force_field(self, node, config, material, template):
+    @staticmethod
+    def add_force_field(node, config, material, template):
         """The *FEMForceField component under test, its Data merged from `config` and `material`"""
         node.addObject(config['type'], name='fem', template=template, topology='@topology',
                        **params(material), **params(config))
 
-    def add_solvers(self, node, config):
+    @staticmethod
+    def add_solvers(node, config):
         """Newton (if present) + linear solver (+ preconditioner) + integration scheme."""
 
         # Newton Solver
