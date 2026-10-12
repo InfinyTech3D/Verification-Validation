@@ -1,0 +1,24 @@
+{
+  "geometry":    { "type": "Bar1D", "length": 2.0 },
+  "element":     "edge",
+  "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
+  "forceField":  { "type": "LinearSmallStrainFEMForceField" },
+  "tractionOn":  { "right": [1] },
+  "solution":    { "type": "Trigonometric", "amplitude": 1 },
+  "errorQuadratureDegree": 3,
+  "sourceQuadratureDegree": 2,
+  "solvers": {
+    "integration":  { "type": "StaticSolver" },
+    "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 1,
+                      "relativeInitialStoppingThreshold": 1e-6,
+                      "relativeSuccessiveStoppingThreshold": 0,
+                      "absoluteResidualStoppingThreshold": 0,
+                      "printLog": false },
+    "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+  },
+  "mesh":        { "cells": [3], "levels": 7, "refinementRatio": 2 },
+  "asymptoticTolerance": 0.10,
+  "expectedOrder": { "L2": 2.0, "H1": 1.0, "EnergyDifference": 1.0 },
+  "expectedOrderTolerance": 0.15,
+  "relativeNoiseFloor": 1e-12
+}
