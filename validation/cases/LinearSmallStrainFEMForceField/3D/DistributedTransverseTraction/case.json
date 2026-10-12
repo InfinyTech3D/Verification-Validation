@@ -1,0 +1,38 @@
+{
+  "hexa": {
+    "geometry":   { "type": "Beam3D", "length": 1.0, "width": 0.2, "height": 0.2 },
+    "element":    "hexa",
+    "material":   { "type": "LinearElastic", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "LinearSmallStrainFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 1,
+                        "relativeInitialStoppingThreshold": 1e-6,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 0 },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [11, 5, 5] },
+    "load":       { "type": "distributedTransverseTraction", "magnitude": 0.05 },
+    "tolerance":  { "rms": 1e-10 }
+  },
+  "tet": {
+    "geometry":   { "type": "Beam3D", "length": 1.0, "width": 0.2, "height": 0.2 },
+    "element":    "tet",
+    "swapping":   true,
+    "gridMapping": { "swapping": true },
+    "material":   { "type": "LinearElastic", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "LinearSmallStrainFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 1,
+                        "relativeInitialStoppingThreshold": 1e-6,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 0 },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [11, 5, 5] },
+    "load":       { "type": "distributedTransverseTraction", "magnitude": 0.05 },
+    "tolerance":  { "rms": 1e-10 }
+  }
+}
