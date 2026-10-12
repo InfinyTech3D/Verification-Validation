@@ -1,6 +1,7 @@
 """Runner for the verification suite: loads a case and runs its verification study."""
 
 import argparse
+import json
 import os
 import pathlib
 import sys
@@ -11,7 +12,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from verification.case import Case
 from verification.scene.scene import MMSScene
-from verification.study.study import ErrorConvergenceStudy, clear_results, overview
+from verification.study.study import (ErrorConvergenceStudy, NormAgreementStudy, clear_results,
+                                overview)
 
 CASES_ROOT = pathlib.Path(__file__).parent / "cases"
 
@@ -27,11 +29,14 @@ def run_all(directory, args):
 
     Returns [(name, study)], the study being None where that case raised.
     """
-    TESTED_COMPONENTS = ("LinearSmallStrainFEMForceField",)
+    TESTED_COMPONENTS = ("LinearSmallStrainFEMForceField", "CorotationalFEMForceField")
 
     results = []
     for component in TESTED_COMPONENTS:
-        for path in sorted((directory / component).rglob("*.json")):
+        # A comparison reads a record an earlier case wrote, so it goes last among its siblings.
+        cases = sorted(sorted((directory / component).rglob("*.json")),
+                       key=lambda path: "compareAgainst" in json.loads(path.read_text()))
+        for path in cases:
             name = path.relative_to(directory).with_suffix("").as_posix()
             print(f"\n--- {name} ---")
             try:
@@ -50,7 +55,7 @@ def run_all(directory, args):
 def run(case_path):
     """Load one case, run its verification study, and write what it produced to disk."""
     case = Case.load(case_path)
-    study = ErrorConvergenceStudy(case)
+    study = NormAgreementStudy(case) if case.compare_against else ErrorConvergenceStudy(case)
     study.run()
     study.write_results()
     return study
