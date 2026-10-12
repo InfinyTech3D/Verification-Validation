@@ -1,0 +1,26 @@
+{
+  "geometry":    { "type": "Beam2D", "length": 1.0, "width": 1.0 },
+  "element":     "quad",
+  "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
+  "forceField":  { "type": "CorotationalFEMForceField", "rotationMethod": "polar" },
+  "solution":    { "type": "Trigonometric", "amplitude": 0.02 },
+  "rotation":    { "axis": "z", "angleDegreesPerLength": { "x": 15.0, "y": 10.0 } },
+  "excitationSteps": 5,
+  "errorQuadratureDegree": 3,
+  "sourceQuadratureDegree": 3,
+  "solvers": {
+    "integration":  { "type": "StaticSolver" },
+    "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 40,
+                      "maxNbIterationsLineSearch": 5,
+                      "relativeInitialStoppingThreshold": 1e-8,
+                      "relativeSuccessiveStoppingThreshold": 0,
+                      "absoluteResidualStoppingThreshold": 0,
+                      "printLog": false },
+    "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+  },
+  "mesh":        { "cells": [3, 3], "levels": 5, "refinementRatio": 2 },
+  "asymptoticTolerance": 0.10,
+  "expectedOrder": { "L2": 2.0, "H1": 1.0, "EnergyDifference": 1.0 },
+  "expectedOrderTolerance": 0.15,
+  "relativeNoiseFloor": 1e-12
+}
