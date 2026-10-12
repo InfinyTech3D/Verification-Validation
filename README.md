@@ -8,6 +8,11 @@ loads that produce it are derived, and SOFA solves the problem on a sequence of 
 The error must shrink at the rate the discretisation predicts. Covered force fields:
 - `LinearSmallStrainFEMForceField` [`verification/docs/LinearSmallStrainFEMForceField.ipynb`](verification/docs/LinearSmallStrainFEMForceField.ipynb)
 - `CorotationalFEMForceField` [`verification/docs/CorotationalFEMForceField.ipynb`](verification/docs/CorotationalFEMForceField.ipynb)
+- `HyperelasticityFEMForceField` covering the following material laws:
+  - `Saint Venant-Kirchhoff`
+  - `Neo-Hookean`
+  - `Mooney-Rivlin`
+  - `Ogden`
 
 To get started, read [`verification/docs/IntroductionMMS.ipynb`](verification/docs/IntroductionMMS.ipynb): it presents the method and builds one verification study step by step, from the manufactured solution to the input file the suite runs.
 
