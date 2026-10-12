@@ -41,14 +41,16 @@ def build(root, case):
     def node_at(x, y):
         return int(np.where(np.isclose(rest_positions[:, 0], x) & np.isclose(rest_positions[:, 1], y))[0][0])
 
-    pin_index = node_at(0.0, 0.0)
-    roller_index = node_at(geometry.length, 0.0)
+    roller_indices = [node_at(0.0, 0.0), node_at(geometry.length, 0.0)]
+    anchor_index = node_at(geometry.length / 2, 0.0)
     load_index = node_at(geometry.length / 2, geometry.width)
 
     with beam.mechanical_node() as mechanical:
-        mechanical.addObject('FixedProjectiveConstraint', name='pin', indices=[pin_index])
-        mechanical.addObject('PartialFixedProjectiveConstraint', name='roller', indices=[roller_index],
+        mechanical.addObject('PartialFixedProjectiveConstraint', name='rollers', indices=roller_indices,
                              fixedDirections=[0, 1])
+        # Removes the rigid translation along x while keeping the solution symmetric about the midspan
+        mechanical.addObject('PartialFixedProjectiveConstraint', name='anchor', indices=[anchor_index],
+                             fixedDirections=[1, 0])
         mechanical.addObject('ConstantForceField', name='pointLoad', indices=[load_index],
                              forces=[[0.0, -case['load']['magnitude']]])
     return mechanical
