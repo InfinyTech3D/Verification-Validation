@@ -78,6 +78,8 @@ class ManufacturedProblem:
         # Keep a symbolic representation of the displacement: `equation` reads off this directly.
         self.displacement_expression = displacement
         self.stress_expression = stress
+        # A rotation turns the stress, R stress, which is no longer symmetric.
+        self.symmetric_stress = material.symmetric_stress and rotation is None
 
         gradient = displacement.jacobian(self.coordinates)
         source = -sp.Matrix([sum(sp.diff(stress[i, j], self.coordinates[j])

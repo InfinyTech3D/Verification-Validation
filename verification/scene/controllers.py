@@ -39,13 +39,14 @@ class ApplyManufacturedSourceTerm(Sofa.Core.Controller):
 class ApplyManufacturedTraction(Sofa.Core.Controller):
     """Loads the whole boundary of a mesh with the traction a manufactured solution exerts on it."""
 
-    def __init__(self, geometry, node, dofs, stress, vec_type, element, spatial_dimensions,
-                 source_quadrature_degree, *args, **kwargs):
+    def __init__(self, geometry, node, dofs, stress, symmetric_stress, vec_type, element,
+                 spatial_dimensions, source_quadrature_degree, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.geometry = geometry
         self.node = node
         self.dofs = dofs
         self.stress = stress
+        self.symmetric_stress = symmetric_stress
         self.vec_type = vec_type
         self.element = element
         self.spatial_dimensions = spatial_dimensions
@@ -80,13 +81,19 @@ class ApplyManufacturedTraction(Sofa.Core.Controller):
 
         # Apply the nodal stress load on the boundary.
         template = f'{self.vec_type},{boundary_kind.cpp}'
-        # The manufactured stress at every node, converted to the layout NodalStress takes.
+        # The manufactured stress at every node, in the layout the nodal stress takes: the lower
+        # triangle when symmetric, the full matrix row by row otherwise.
         stress_values = self.stress(rest_positions)
-        rows, columns = np.tril_indices(stress_values.shape[-1])
-        self.nodal_stress = boundary.addObject('NodalStress', name='stress', template=self.vec_type)
-        self.nodal_stress.property.value = np.ascontiguousarray(stress_values[:, rows, columns])
+        prefix = 'Symmetric' if self.symmetric_stress else ''
+        if self.symmetric_stress:
+            stress_values = stress_values[:, *np.tril_indices(stress_values.shape[-1])]
+        self.nodal_stress = boundary.addObject(f'Nodal{prefix}Stress', name='stress',
+                                               template=self.vec_type)
+        self.nodal_stress.property.value = np.ascontiguousarray(
+            stress_values.reshape(len(stress_values), -1))
 
-        boundary.addObject('StressSourceTerm', name='traction', template=template, stress='@stress')
+        boundary.addObject(f'{prefix}StressSourceTerm', name='traction', template=template,
+                           stress='@stress')
         boundary.addObject('FEMSourceTermIntegrator', name='tractionSource', template=template,
                            topology='@topology', quadratureDegree=self.source_quadrature_degree,
                            constantSources='@traction')
