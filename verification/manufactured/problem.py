@@ -62,6 +62,7 @@ class ManufacturedProblem:
                              f"{self.solution.dim} components, one per dimension of the solution, "
                              f"got {len(components)}")
         components += [0] * (dimensions - self.solution.dim)
+        self.parameter_values = solution.parameter_values | material.parameter_values
 
         # The sympy variables that become the inputs of the compiled numpy functions.
         # x, for the fields
@@ -277,7 +278,7 @@ class ManufacturedProblem:
         """
         arguments = [np.array(argument, dtype=object) for argument in arguments]
         symbols = [symbol for argument in arguments for symbol in argument.flat]
-        entries = [sp.lambdify(symbols, entry, "numpy") for entry in expression]
+        entries = [sp.lambdify(symbols, entry.xreplace(self.parameter_values), "numpy") for entry in expression]
 
         def compiled(*values):
             values = [np.asarray(value, dtype=float) for value in values]
