@@ -257,3 +257,8 @@ class SaintVenantKirchhoff(Material):
         deformation = identity + gradient
         strain = (deformation.T * deformation - identity) / 2
         return self.lam * strain.trace() ** 2 / 2 + self.mu * sum(e ** 2 for e in strain)
+
+
+# case "material.type" -> material class, keyed by the class's own name.
+MATERIALS = {cls.__name__: cls for cls in (LinearElastic, MooneyRivlin, NeoHookean, Ogden,
+                                          SaintVenantKirchhoff)}
