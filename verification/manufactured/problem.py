@@ -56,6 +56,7 @@ class ManufacturedProblem:
                              f"{self.solution.dim} components, one per dimension of the solution, "
                              f"got {len(components)}")
         components += [0] * (dimensions - self.solution.dim)
+        self.parameter_values = solution.parameter_values | material.parameter_values
 
         displacement = sp.Matrix(components)
         # The rotation the material law is pulled back by: the rotation itself when constant.
@@ -135,7 +136,8 @@ class ManufacturedProblem:
         The result, `evaluate(points)`, takes one point or a whole batch of points (shape
         (..., spatial_dimensions)) and returns the expression's value at each, shaped (*batch, *shape).
         """
-        components = [sp.lambdify(list(self.coordinates), entry, "numpy") for entry in expression]
+        components = [sp.lambdify(list(self.coordinates), entry.xreplace(self.parameter_values), "numpy")
+                      for entry in expression]
 
         def compiled_field(points):
             points = np.asarray(points, dtype=float)
