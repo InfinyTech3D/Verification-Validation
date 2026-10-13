@@ -11,6 +11,7 @@ def strain_energy_density(material, gradient):
     dim = gradient.ufl_shape[0]
     law = MATERIALS[material['type']]
     symbols = sp.Matrix(dim, dim, lambda i, j: sp.Symbol(f"G_{i}_{j}"))
-    energy = law(*law.get_material_parameters(material, dim)).energy_density(symbols)
+    constitutive_law = law(*law.get_material_parameters(material, dim))
+    energy = constitutive_law.energy_density(symbols).xreplace(constitutive_law.parameter_values)
     return sp.lambdify(list(symbols), energy, modules=[{'log': ufl.ln}])(
         *[gradient[i, j] for i in range(dim) for j in range(dim)])
