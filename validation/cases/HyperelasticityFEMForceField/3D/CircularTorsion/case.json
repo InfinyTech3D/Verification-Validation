@@ -1,0 +1,53 @@
+{
+  "SaintVenantKirchhoff_tet": {
+    "geometry":   { "type": "Cylinder", "length": 1.0, "radius": 0.1 },
+    "element":    "tet",
+    "material":   { "type": "SaintVenantKirchhoff", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 0 },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "file": "beam_tet.msh", "size": 0.03 },
+    "load":       { "type": "torque", "magnitude": 0.05, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "NeoHookean_tet": {
+    "geometry":   { "type": "Cylinder", "length": 1.0, "radius": 0.1 },
+    "element":    "tet",
+    "material":   { "type": "NeoHookean", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 0 },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "file": "beam_tet.msh", "size": 0.03 },
+    "load":       { "type": "torque", "magnitude": 0.05, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "MooneyRivlin_tet": {
+    "geometry":   { "type": "Cylinder", "length": 1.0, "radius": 0.1 },
+    "element":    "tet",
+    "material":   { "type": "MooneyRivlin", "mu10": 96.153846, "mu01": 96.153846, "bulkModulus": 833.333333 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 0 },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "file": "beam_tet.msh", "size": 0.03 },
+    "load":       { "type": "torque", "magnitude": 0.05, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  }
+}
