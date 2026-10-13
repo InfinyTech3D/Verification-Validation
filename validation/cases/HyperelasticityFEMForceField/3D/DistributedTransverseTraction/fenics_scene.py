@@ -40,7 +40,9 @@ def build(case):
 
     G = ufl.variable(ufl.grad(u))
     P = ufl.diff(strain_energy_density(case['material'], G), G)
-    residual = ufl.inner(P, ufl.grad(v)) * ufl.dx - load_factor * ufl.dot(traction, v) * ds(1)
+    # SOFA's hexahedron rule: 2x2x2 Gauss
+    dx = ufl.dx(metadata={'quadrature_degree': 3}) if case['element'] == 'hexa' else ufl.dx
+    residual = ufl.inner(P, ufl.grad(v)) * dx - load_factor * ufl.dot(traction, v) * ds(1)
 
     clamped = fem.locate_dofs_geometrical(V, lambda x: np.isclose(x[0], 0.0))
     bc = fem.dirichletbc(np.zeros(3, dtype=default_scalar_type), clamped, V)
