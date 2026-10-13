@@ -145,10 +145,6 @@ def _validate_boundary_conditions(name, config, geometry):
     traction_on = config.get("tractionOn", {})
     problems = []
 
-    # TODO A rotated stress is not symmetric, and NodalStress only carries a symmetric tensor.
-    if traction_on and "rotation" in config:
-        problems.append("a rotated problem cannot state tractionOn: its stress is not symmetric")
-
     unknown = set(traction_on) - set(geometry.region_names)
     if unknown:
         problems.append(f"tractionOn names {sorted(unknown)}, not regions of "
