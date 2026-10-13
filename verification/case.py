@@ -4,11 +4,11 @@ import json
 import pathlib
 
 from common.geometry import Grid, Bar1D, Beam2D, Beam3D, Tire, Tire2D, Tire3D
+from common.materials import MATERIALS
 from common.sofa.conventions import ELEMENTS
 
 from . import manufactured
 from .manufactured import ManufacturedProblem, rotation_matrix
-from .manufactured.materials import LinearElastic, MooneyRivlin, NeoHookean, Ogden, SaintVenantKirchhoff
 from .study.metrics import METRICS
 
 CASES_ROOT = pathlib.Path(__file__).parent / "cases"
@@ -16,10 +16,6 @@ CASES_ROOT = pathlib.Path(__file__).parent / "cases"
 # case "geometry.type" -> geometry class, keyed by the class's own name.
 GEOMETRIES = {cls.__name__: cls for cls in (Grid, Bar1D, Beam2D, Beam3D,
                                             Tire, Tire2D, Tire3D)}
-
-# case "material.type" -> material class, keyed by the class's own name.
-MATERIALS = {cls.__name__: cls for cls in (LinearElastic, MooneyRivlin, NeoHookean, Ogden,
-                                          SaintVenantKirchhoff)}
 
 
 class _ManufacturedSolutionRegistry:
