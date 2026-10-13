@@ -1,5 +1,6 @@
-"""Post-init SOFA controllers shared by both suites."""
+"""SOFA controllers shared by both suites."""
 
+import numpy as np
 import Sofa.Core
 
 
@@ -51,3 +52,21 @@ class RegionClamp(Sofa.Core.Controller):
                             pos[indices, axis] = rest_positions[indices, axis] + displacement[:, axis]
 
                 constraint.indices.value = indices
+
+
+class LoadRamp(Sofa.Core.Controller):
+    """Ramps the Data `data_name` of `component` linearly from zero to its initial value over `steps` animation
+    steps, then holds it."""
+
+    def __init__(self, component, data_name, steps, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Not the Data itself: a Data attribute of a controller reads back as its value.
+        self.component = component
+        self.data_name = data_name
+        self.full_load = np.array(component.findData(data_name).value)
+        self.steps = steps
+        self.step = 0
+
+    def onAnimateBeginEvent(self, event):
+        self.step = min(self.step + 1, self.steps)
+        self.component.findData(self.data_name).value = self.full_load * self.step / self.steps
