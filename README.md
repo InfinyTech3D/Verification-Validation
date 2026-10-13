@@ -19,6 +19,10 @@ To get started, read [`verification/docs/IntroductionMMS.ipynb`](verification/do
 **Validation** compares SOFA against reference results computed with FEniCS, and against an
 analytic solution where one exists. Covered force fields: 
 - `LinearSmallStrainFEMForceField`
+- `HyperelasticityFEMForceField` [`validation/docs/HyperelasticityFEMForceField.ipynb`](validation/docs/HyperelasticityFEMForceField.ipynb) covering the following material laws:
+  - `Saint Venant-Kirchhoff`
+  - `Neo-Hookean`
+  - `Mooney-Rivlin`
 
 ## Layout
 
