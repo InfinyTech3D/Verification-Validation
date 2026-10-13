@@ -105,8 +105,8 @@ class LinearElastic(Material):
         return _toLame[spatial_dimensions](parameters["youngModulus"], parameters["poissonRatio"])
 
     def __init__(self, mu, lam):
-        self.mu = mu
-        self.lam = lam
+        self.mu, self.lam = sp.symbols("mu lambda")
+        self.parameter_values = {self.mu: mu, self.lam: lam}
 
     def energy_density(self, gradient):
         strain = (gradient + gradient.T) / 2
@@ -126,9 +126,8 @@ class MooneyRivlin(Material):
         return parameters["mu10"], parameters["mu01"], parameters["bulkModulus"]
 
     def __init__(self, mu10, mu01, bulk_modulus):
-        self.mu10 = mu10
-        self.mu01 = mu01
-        self.bulk_modulus = bulk_modulus
+        self.mu10, self.mu01, self.bulk_modulus = sp.symbols("mu_10 mu_01 kappa")
+        self.parameter_values = {self.mu10: mu10, self.mu01: mu01, self.bulk_modulus: bulk_modulus}
 
     def energy_density(self, gradient):
         dimensions = gradient.rows
@@ -153,8 +152,8 @@ class NeoHookean(Material):
         return _toLame[spatial_dimensions](parameters["youngModulus"], parameters["poissonRatio"])
 
     def __init__(self, mu, lam):
-        self.mu = mu
-        self.lam = lam
+        self.mu, self.lam = sp.symbols("mu lambda")
+        self.parameter_values = {self.mu: mu, self.lam: lam}
 
     def energy_density(self, gradient):
         deformation = sp.eye(gradient.rows) + gradient
@@ -184,9 +183,8 @@ class Ogden(Material):
     def __init__(self, mu, alpha, kappa):
         if alpha == 0:
             raise ValueError("alpha must be non-zero")
-        self.mu = mu
-        self.alpha = sp.Rational(str(alpha))
-        self.kappa = kappa
+        self.mu, self.alpha, self.kappa = sp.symbols("mu alpha kappa")
+        self.parameter_values = {self.mu: mu, self.alpha: sp.Rational(str(alpha)), self.kappa: kappa}
 
     def energy_density(self, gradient):
         dimensions = gradient.rows
@@ -195,9 +193,10 @@ class Ogden(Material):
         jacobian = deformation.det()
 
         exponent = self.alpha / 2
-        if exponent.is_integer:
+        exponent_value = self.parameter_values[self.alpha] / 2
+        if exponent_value.is_integer:
             # A whole alpha/2 is a matrix power, keeping tr(C^(alpha/2)) polynomial at any dimension.
-            stretch_sum = (cauchy_green ** int(exponent)).trace()
+            stretch_sum = (cauchy_green ** int(exponent_value)).trace()
         elif dimensions == 2:
             # In 2D the eigenvalues of C are the roots of l^2 - tr(C) l + det(C):
             #   l = (tr(C) +- sqrt(D)) / 2,   D = tr(C)^2 - 4 det(C) = (l1 - l2)^2
@@ -227,7 +226,7 @@ class Ogden(Material):
             stretch_sum = sp.Piecewise((expansion, discriminant < trace ** 2 / 10 ** 6),
                                        (through_roots, True))
         else:
-            raise ValueError(f"alpha = {self.alpha} needs the eigenvalues of C, which beyond a 2x2 "
+            raise ValueError(f"alpha = {self.parameter_values[self.alpha]} needs the eigenvalues of C, which beyond a 2x2 "
                              f"have no closed form that survives differentiation; at {dimensions}D "
                              f"alpha must be even")
 
@@ -249,8 +248,8 @@ class SaintVenantKirchhoff(Material):
         return _toLame[spatial_dimensions](parameters["youngModulus"], parameters["poissonRatio"])
 
     def __init__(self, mu, lam):
-        self.mu = mu
-        self.lam = lam
+        self.mu, self.lam = sp.symbols("mu lambda")
+        self.parameter_values = {self.mu: mu, self.lam: lam}
 
     def energy_density(self, gradient):
         identity = sp.eye(gradient.rows)
