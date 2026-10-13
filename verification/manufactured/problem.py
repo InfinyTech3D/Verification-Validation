@@ -5,7 +5,7 @@ from the pair.
 import numpy as np
 import sympy as sp
 
-from .materials import compile_laws
+from common.materials import compile_laws
 
 _COORDINATES = sp.symbols("x y z")
 
