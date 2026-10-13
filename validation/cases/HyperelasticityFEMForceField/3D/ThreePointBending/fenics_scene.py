@@ -31,7 +31,9 @@ def build(case):
 
     G = ufl.variable(ufl.grad(u))
     P = ufl.diff(strain_energy_density(case['material'], G), G)
-    residual = ufl.inner(P, ufl.grad(v)) * ufl.dx
+    # SOFA's hexahedron rule: 2x2x2 Gauss
+    dx = ufl.dx(metadata={'quadrature_degree': 3}) if case['element'] == 'hexa' else ufl.dx
+    residual = ufl.inner(P, ufl.grad(v)) * dx
 
     length = geometry.length
 
