@@ -1,0 +1,113 @@
+{
+  "SaintVenantKirchhoff_quad": {
+    "geometry":   { "type": "Beam2D", "length": 1.0, "width": 0.2 },
+    "element":    "quad",
+    "material":   { "type": "SaintVenantKirchhoff", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 1e-12,
+                        "warnWhenLineSearchFails": false },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [21, 9, 1] },
+    "load":       { "type": "distributedTransverseTraction", "magnitude": 1.0, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "SaintVenantKirchhoff_tri": {
+    "geometry":   { "type": "Beam2D", "length": 1.0, "width": 0.2 },
+    "element":    "tri",
+    "swapping":   true,
+    "material":   { "type": "SaintVenantKirchhoff", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 1e-12,
+                        "warnWhenLineSearchFails": false },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [21, 9, 1] },
+    "load":       { "type": "distributedTransverseTraction", "magnitude": 1.0, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "NeoHookean_quad": {
+    "geometry":   { "type": "Beam2D", "length": 1.0, "width": 0.2 },
+    "element":    "quad",
+    "material":   { "type": "NeoHookean", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 1e-12,
+                        "warnWhenLineSearchFails": false },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [21, 9, 1] },
+    "load":       { "type": "distributedTransverseTraction", "magnitude": 1.0, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "NeoHookean_tri": {
+    "geometry":   { "type": "Beam2D", "length": 1.0, "width": 0.2 },
+    "element":    "tri",
+    "swapping":   true,
+    "material":   { "type": "NeoHookean", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 1e-12,
+                        "warnWhenLineSearchFails": false },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [21, 9, 1] },
+    "load":       { "type": "distributedTransverseTraction", "magnitude": 1.0, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "MooneyRivlin_quad": {
+    "geometry":   { "type": "Beam2D", "length": 1.0, "width": 0.2 },
+    "element":    "quad",
+    "material":   { "type": "MooneyRivlin", "mu10": 96.153846, "mu01": 96.153846, "bulkModulus": 833.333333 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 1e-12,
+                        "warnWhenLineSearchFails": false },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [21, 9, 1] },
+    "load":       { "type": "distributedTransverseTraction", "magnitude": 1.0, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "MooneyRivlin_tri": {
+    "geometry":   { "type": "Beam2D", "length": 1.0, "width": 0.2 },
+    "element":    "tri",
+    "swapping":   true,
+    "material":   { "type": "MooneyRivlin", "mu10": 96.153846, "mu01": 96.153846, "bulkModulus": 833.333333 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 1e-12,
+                        "warnWhenLineSearchFails": false },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [21, 9, 1] },
+    "load":       { "type": "distributedTransverseTraction", "magnitude": 1.0, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  }
+}
