@@ -6,6 +6,9 @@ from abc import ABC, abstractmethod
 
 import sympy as sp
 
+# Geometry parameter -> the axis its wavenumber runs along.
+_AXES = {"length": "x", "width": "y", "height": "z"}
+
 
 class ManufacturedSolution(ABC):
     """An exact displacement, declared symbolically, and the regions where its BCs apply.
@@ -25,7 +28,8 @@ class ManufacturedSolution(ABC):
                              f"got a {geometry.dim}D {type(geometry).__name__}")
 
         self.config = config                        # the case's "solution" block; a subclass may read more from it
-        self.amplitude = config["amplitude"]        # too large relative to the geometry inverts elements
+        self.amplitude = sp.Symbol("A")             # too large relative to the geometry inverts elements
+        self.parameter_values = {self.amplitude: config["amplitude"]}  # substituted for the symbols at compile time
         self.parameters = geometry.named_parameters
         self.regions = list(geometry.region_names)
         self.traction_on = traction_on or {}        # {region: directions} the case hands to traction
@@ -59,4 +63,7 @@ class TrigonometricSolution(ManufacturedSolution):
         """The wavenumber fitting `self.periods` full periods across one of the geometry's
         characteristic parameters, e.g. 2 pi / length for a single period.
         """
-        return 2 * sp.pi * sp.Rational(str(self.periods)) / sp.Rational(str(self.parameters[parameter]))
+        symbol = sp.Symbol(f"k_{_AXES[parameter]}")
+        self.parameter_values[symbol] = (2 * sp.pi * sp.Rational(str(self.periods))
+                                         / sp.Rational(str(self.parameters[parameter])))
+        return symbol
