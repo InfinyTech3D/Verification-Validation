@@ -51,6 +51,9 @@ class Material(ABC):
     symbolic differentiation.
     """
 
+    # True when the stress is symmetric for every displacement gradient
+    symmetric_stress = False
+
     @classmethod
     @abstractmethod
     def get_material_parameters(cls, parameters, spatial_dimensions):
@@ -117,6 +120,8 @@ def compile_laws(material, dimensions):
 
 class LinearElastic(Material):
     """Hooke: psi = 1/2 lambda tr(eps)^2 + mu eps:eps on the symmetric gradient eps."""
+
+    symmetric_stress = True
 
     @classmethod
     def get_material_parameters(cls, parameters, spatial_dimensions):

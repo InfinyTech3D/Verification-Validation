@@ -72,6 +72,7 @@ class MMSScene(SofaScene):
         traction_controller = mechanical.addObject(ApplyManufacturedTraction(
             geometry=self.geometry, node=mechanical, dofs=mechanical.dofs,
             stress=self.manufactured_problem.stress,
+            symmetric_stress=self.manufactured_problem.symmetric_stress,
             vec_type=VEC, element=self.element, spatial_dimensions=spatial_dimensions,
             source_quadrature_degree=self.source_quadrature_degree, name='tractionCtrl'))
 
