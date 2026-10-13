@@ -39,7 +39,11 @@ def build(case):
 
     G = ufl.variable(ufl.grad(u))
     P = ufl.diff(strain_energy_density(case['material'], G), G)
-    residual = ufl.inner(P, ufl.grad(v)) * ufl.dx - load_factor * ufl.dot(traction, v) * ds(1)
+    # SOFA's quad rule: 3 points, degree 2, mapped from [-1, 1]² to [0, 1]²
+    points = (np.array([[np.sqrt(2 / 3), 0], [-1 / np.sqrt(6), -1 / np.sqrt(2)], [-1 / np.sqrt(6), 1 / np.sqrt(2)]]) + 1) / 2
+    dx = ufl.dx(metadata={'quadrature_rule': 'custom', 'quadrature_points': points,
+                          'quadrature_weights': np.full(3, 1 / 3)}) if case['element'] == 'quad' else ufl.dx
+    residual = ufl.inner(P, ufl.grad(v)) * dx - load_factor * ufl.dot(traction, v) * ds(1)
 
     clamped = fem.locate_dofs_geometrical(V, lambda x: np.isclose(x[0], 0.0))
     bc = fem.dirichletbc(np.zeros(2, dtype=default_scalar_type), clamped, V)
