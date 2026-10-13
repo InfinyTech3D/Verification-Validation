@@ -1,6 +1,6 @@
 {
   "SaintVenantKirchhoff_hexa": {
-    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.05 },
+    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.1 },
     "element":    "hexa",
     "material":   { "type": "SaintVenantKirchhoff", "youngModulus": 20.213904, "poissonRatio": 0.443850 },
     "forceField": { "type": "HyperelasticityFEMForceField" },
@@ -18,7 +18,7 @@
     "tolerance":  { "rms": 1e-6 }
   },
   "SaintVenantKirchhoff_tet": {
-    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.05 },
+    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.1 },
     "element":    "tet",
     "material":   { "type": "SaintVenantKirchhoff", "youngModulus": 20.213904, "poissonRatio": 0.443850 },
     "forceField": { "type": "HyperelasticityFEMForceField" },
@@ -36,7 +36,7 @@
     "tolerance":  { "rms": 1e-6 }
   },
   "NeoHookean_hexa": {
-    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.05 },
+    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.1 },
     "element":    "hexa",
     "material":   { "type": "NeoHookean", "youngModulus": 20.213904, "poissonRatio": 0.443850 },
     "forceField": { "type": "HyperelasticityFEMForceField" },
@@ -54,7 +54,7 @@
     "tolerance":  { "rms": 1e-6 }
   },
   "NeoHookean_tet": {
-    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.05 },
+    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.1 },
     "element":    "tet",
     "material":   { "type": "NeoHookean", "youngModulus": 20.213904, "poissonRatio": 0.443850 },
     "forceField": { "type": "HyperelasticityFEMForceField" },
@@ -72,7 +72,7 @@
     "tolerance":  { "rms": 1e-6 }
   },
   "MooneyRivlin_hexa": {
-    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.05 },
+    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.1 },
     "element":    "hexa",
     "material":   { "type": "MooneyRivlin", "mu10": 1.75, "mu01": 1.75, "bulkModulus": 60.0 },
     "forceField": { "type": "HyperelasticityFEMForceField" },
@@ -90,7 +90,7 @@
     "tolerance":  { "rms": 1e-6 }
   },
   "MooneyRivlin_tet": {
-    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.05 },
+    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.1 },
     "element":    "tet",
     "material":   { "type": "MooneyRivlin", "mu10": 1.75, "mu01": 1.75, "bulkModulus": 60.0 },
     "forceField": { "type": "HyperelasticityFEMForceField" },
