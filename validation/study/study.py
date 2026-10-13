@@ -46,13 +46,12 @@ class ISFComparisonStudy:
     def run(self, regenerate_fenics=False):
         with open(self.case_dir / 'case.json') as f:
             case = json.load(f)
-        element_cases = [case] if 'geometry' in case else list(case.values())
 
+        element_cases = {case['element']: case} if 'geometry' in case else case
         reference_file = self.case_dir / 'reference_solution.json'
 
-        for case in element_cases:
-            element = case['element']
-
+        for element in element_cases:
+            case = element_cases[element]
             reference = json.loads(reference_file.read_text()) if reference_file.exists() else {}
             has_fenics = element in reference and 'fenics' in reference[element]
             if regenerate_fenics or not has_fenics:
