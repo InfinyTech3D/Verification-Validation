@@ -1,0 +1,110 @@
+{
+  "SaintVenantKirchhoff_hexa": {
+    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.05 },
+    "element":    "hexa",
+    "material":   { "type": "SaintVenantKirchhoff", "youngModulus": 20.213904, "poissonRatio": 0.443850 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 1e-12,
+                        "warnWhenLineSearchFails": false },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "file": "cruciform_hexa.msh", "size": 0.0833333333333333, "layers": 2 },
+    "load":       { "type": "biaxialTraction", "magnitude": 3.5, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "SaintVenantKirchhoff_tet": {
+    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.05 },
+    "element":    "tet",
+    "material":   { "type": "SaintVenantKirchhoff", "youngModulus": 20.213904, "poissonRatio": 0.443850 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 1e-12,
+                        "warnWhenLineSearchFails": false },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "file": "cruciform_tet.msh", "size": 0.0833333333333333, "layers": 2 },
+    "load":       { "type": "biaxialTraction", "magnitude": 3.5, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "NeoHookean_hexa": {
+    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.05 },
+    "element":    "hexa",
+    "material":   { "type": "NeoHookean", "youngModulus": 20.213904, "poissonRatio": 0.443850 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 1e-12,
+                        "warnWhenLineSearchFails": false },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "file": "cruciform_hexa.msh", "size": 0.0833333333333333, "layers": 2 },
+    "load":       { "type": "biaxialTraction", "magnitude": 3.5, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "NeoHookean_tet": {
+    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.05 },
+    "element":    "tet",
+    "material":   { "type": "NeoHookean", "youngModulus": 20.213904, "poissonRatio": 0.443850 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 1e-12,
+                        "warnWhenLineSearchFails": false },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "file": "cruciform_tet.msh", "size": 0.0833333333333333, "layers": 2 },
+    "load":       { "type": "biaxialTraction", "magnitude": 3.5, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "MooneyRivlin_hexa": {
+    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.05 },
+    "element":    "hexa",
+    "material":   { "type": "MooneyRivlin", "mu10": 1.75, "mu01": 1.75, "bulkModulus": 60.0 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 1e-12,
+                        "warnWhenLineSearchFails": false },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "file": "cruciform_hexa.msh", "size": 0.0833333333333333, "layers": 2 },
+    "load":       { "type": "biaxialTraction", "magnitude": 3.5, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "MooneyRivlin_tet": {
+    "geometry":   { "type": "Cruciform", "halfSpan": 1.0, "halfArmWidth": 0.3333333333333333, "thickness": 0.05 },
+    "element":    "tet",
+    "material":   { "type": "MooneyRivlin", "mu10": 1.75, "mu01": 1.75, "bulkModulus": 60.0 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticSolver" },
+      "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 20,
+                        "relativeInitialStoppingThreshold": 1e-10,
+                        "relativeSuccessiveStoppingThreshold": 0,
+                        "absoluteResidualStoppingThreshold": 1e-12,
+                        "warnWhenLineSearchFails": false },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "file": "cruciform_tet.msh", "size": 0.0833333333333333, "layers": 2 },
+    "load":       { "type": "biaxialTraction", "magnitude": 3.5, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  }
+}
