@@ -11,6 +11,7 @@ for path in (CASE_DIR, REPO_ROOT):
         sys.path.insert(0, path)
 
 from common.materials import MATERIALS
+from common.sofa.controllers import LoadRamp
 from common.sofa.conventions import ELEMENTS
 from common.sofa.prefabs.base import ScenePrefab
 
@@ -73,8 +74,9 @@ def build(root, case):
                 loaded_face.addObject(boundary_kind.container, name='face', position='@../../dofs.rest_position',
                                       **{boundary_kind.data_name:
                                          f'@../rightFace.{boundary_kind.data_name}InROI'})
-                loaded_face.addObject('NodalSourceDensity', name='loadDensity', template='Vec3d',
-                                      property=traction.tolist())
+                load_density = loaded_face.addObject('NodalSourceDensity', name='loadDensity', template='Vec3d',
+                                                     property=traction.tolist())
+                loaded_face.addObject(LoadRamp(load_density, 'property', case['load']['steps'], name='loadRamp'))
                 loaded_face.addObject('VectorSourceTerm', name='traction', template=f'Vec3d,{boundary_kind.cpp}',
                                       sourceDensity='@loadDensity')
                 loaded_face.addObject('FEMSourceTermIntegrator', name='load', template=f'Vec3d,{boundary_kind.cpp}',
@@ -102,15 +104,10 @@ def solve(case):
     root = Sofa.Core.Node('root')
     mechanical = build(root, case)
     Sofa.Simulation.init(root)
-
-    boundary_kind_name, _ = ELEMENTS[case['element']].boundary_mappings[0]
-    load = mechanical.getChild(boundary_kind_name).getChild('LoadedFace').loadDensity.property
-    full_load = np.array(load.value)
-    steps = case['load']['steps']
-    for step in range(1, steps + 1):
-        load.value = full_load * step / steps
+    for _ in range(case['load']['steps']):
         Sofa.Simulation.animate(root, root.dt.value)
 
+    boundary_kind_name, _ = ELEMENTS[case['element']].boundary_mappings[0]
     x0 = mechanical.dofs.rest_position.array()[:, :3].copy()
     u = mechanical.dofs.position.array()[:, :3] - x0
     boundary = mechanical.getChild(boundary_kind_name).topology
