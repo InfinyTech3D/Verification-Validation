@@ -24,7 +24,7 @@
   },
   "mesh":        { "cells": [2, 2, 2], "levels": 6, "refinementRatio": 2 },
   "asymptoticTolerance": 0.10,
-  "expectedOrder": { "L2": 2.0, "H1": 1.0, "EnergyDifference": 1.0 },
+  "expectedOrder": { "L2": 2.0, "H1": 1.0, "CauchyStress": 1.0, "EnergyDifference": 1.0 },
   "expectedOrderTolerance": 0.15,
   "relativeNoiseFloor": 1e-10
 }
