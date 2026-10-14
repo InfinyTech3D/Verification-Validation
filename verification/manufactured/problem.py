@@ -62,10 +62,13 @@ class ManufacturedProblem:
         # The rotation the material law is pulled back by: the rotation itself when constant.
         pullback = rotation
         if rotation is None:
-            stress = material.stress(displacement.jacobian(self.coordinates))
+            fpk_stress = material.fpk_stress(displacement.jacobian(self.coordinates))
+            cauchy_stress = material.cauchy_stress(displacement.jacobian(self.coordinates))
         elif not rotation.free_symbols:
             # Build stress using the unrotated gradient
-            stress = rotation * material.stress(displacement.jacobian(self.coordinates))
+            fpk_stress = rotation * material.fpk_stress(displacement.jacobian(self.coordinates))
+            # Rotated on both sides: it maps the current normal, which turns too, to the force
+            cauchy_stress = rotation * material.cauchy_stress(displacement.jacobian(self.coordinates)) * rotation.T
             displacement = rotation * (self.coordinates + displacement) - self.coordinates
         else:
             # A varying rotation strains the body, so it is no longer the rotation to pull back by:
@@ -74,23 +77,25 @@ class ManufacturedProblem:
             deformation = sp.eye(dimensions) + displacement.jacobian(self.coordinates)
             trace, skew = deformation[0, 0] + deformation[1, 1], deformation[1, 0] - deformation[0, 1]
             pullback = sp.Matrix([[trace, -skew], [skew, trace]]) / sp.sqrt(trace ** 2 + skew ** 2)
-            stress = pullback * material.stress(pullback.T * deformation - sp.eye(dimensions))
+            fpk_stress = pullback * material.fpk_stress(pullback.T * deformation - sp.eye(dimensions))
+            cauchy_stress = pullback * material.cauchy_stress(pullback.T * deformation - sp.eye(dimensions)) * pullback.T
 
         # Keep a symbolic representation of the displacement: `equation` reads off this directly.
         self.displacement_expression = displacement
-        self.stress_expression = stress
+        self.fpk_stress_expression = fpk_stress
         # A rotation turns the stress, R stress, which is no longer symmetric.
         self.symmetric_stress = material.symmetric_stress and rotation is None
 
         gradient = displacement.jacobian(self.coordinates)
-        source = -sp.Matrix([sum(sp.diff(stress[i, j], self.coordinates[j])
+        source = -sp.Matrix([sum(sp.diff(fpk_stress[i, j], self.coordinates[j])
                                  for j in range(dimensions))
                              for i in range(dimensions)])
         self.source_expression = source
 
         self.u =self._compile_field(displacement, (dimensions,))
         self.grad_u = self._compile_field(gradient, (dimensions, dimensions))
-        self.stress = self._compile_field(stress, (dimensions, dimensions))
+        self.fpk_stress = self._compile_field(fpk_stress, (dimensions, dimensions))
+        self.cauchy_stress = self._compile_field(cauchy_stress, (dimensions, dimensions))
         self.source = self._compile_field(source, (dimensions,))
         self.energy_density, self.tangent = compile_laws(material, dimensions)
         self.rotation_field = None if rotation is None else self._compile_field(rotation, (dimensions, dimensions))
