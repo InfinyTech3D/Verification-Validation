@@ -95,6 +95,15 @@ class Material(ABC):
 # --- The materials themselves, one class per type of material. ---
 
 
+class Hyperelastic(Material):
+    """A finite-strain law: psi depends on the full deformation gradient F = I + G."""
+
+    def cauchy_stress(self, gradient):
+        """J^-1 fpk_stress F^T, with J = det F."""
+        deformation = sp.eye(gradient.rows) + gradient
+        return self.fpk_stress(gradient) * deformation.T / deformation.det()
+
+
 class LinearElastic(Material):
     """Hooke: psi = 1/2 lambda tr(eps)^2 + mu eps:eps on the symmetric gradient eps."""
 
@@ -113,7 +122,7 @@ class LinearElastic(Material):
         return self.lam * strain.trace() ** 2 / 2 + self.mu * sum(e ** 2 for e in strain)
 
 
-class MooneyRivlin(Material):
+class MooneyRivlin(Hyperelastic):
     """psi = mu10 (J^(-2/d) I1 - d) + mu01 (J^(-4/d) I2 - d(d-1)/2) + kappa/2 (ln J)^2.
 
     I1 = tr(C) and I2 = (I1^2 - tr(C^2)) / 2 on C = F^T F, J = det F, F = I + G.
@@ -142,7 +151,7 @@ class MooneyRivlin(Material):
                 + self.bulk_modulus * sp.log(jacobian) ** 2 / 2)
 
 
-class NeoHookean(Material):
+class NeoHookean(Hyperelastic):
     """psi = mu/2 (tr(C) - d - 2 ln J) + lambda/2 (ln J)^2 on C = F^T F, J = det F, F = I + G."""
 
     sofa_component_name = "NeoHookeanMaterial"
@@ -162,7 +171,7 @@ class NeoHookean(Material):
                            - 2 * log_jacobian) / 2 + self.lam * log_jacobian ** 2 / 2)
 
 
-class Ogden(Material):
+class Ogden(Hyperelastic):
     """psi = mu/alpha^2 (J^(-alpha/d) tr(C^(alpha/2)) - d) + kappa/2 (ln J)^2 
 
     with C = F^T F, J = det F, F = I + G.
@@ -235,7 +244,7 @@ class Ogden(Material):
                 + self.kappa * sp.log(jacobian) ** 2 / 2)
 
 
-class SaintVenantKirchhoff(Material):
+class SaintVenantKirchhoff(Hyperelastic):
     """psi = 1/2 lambda tr(E)^2 + mu E:E on the Green-Lagrange strain E = (F^T F - I) / 2, F = I + G.
 
     Stores nothing under a rigid rotation, and tends to LinearElastic as the gradient goes to zero.
