@@ -8,7 +8,7 @@ import numpy as np
 class Measurement:
     """One solved mesh refinement level, sampled at its quadrature points."""
 
-    def __init__(self, displacement, energy_h, manufactured_problem, quadrature):
+    def __init__(self, displacement, energy_h, cauchy_stress_h, manufactured_problem, quadrature):
         # ManufacturedProblem Class
         self.manufactured_problem = manufactured_problem
 
@@ -24,17 +24,21 @@ class Measurement:
                                                          quadrature.points)
         # The strain energy SOFA reports for that same solution, from its own element stiffness.
         self.energy_h = energy_h
+        # The Cauchy stress SOFA reports at the quadrature points, as a full tensor.
+        self.cauchy_stress_h = cauchy_stress_h
 
         # The manufactured solution's analytical displacement and gradient, evaluated at those same
         # points.
         self.u_exact = quadrature.sample(manufactured_problem.u)
         self.grad_exact = manufactured_problem.local_gradient(
             quadrature.sample(manufactured_problem.grad_u), quadrature.points)
+        self.cauchy_stress_exact = quadrature.sample(manufactured_problem.cauchy_stress)
 
         # u_error/grad_error are what a metric measures.
         # u_exact/grad_exact (not the error) set its noise floor, computed through the same norm
         self.u_error = self.u_h - self.u_exact
         self.grad_error = self.grad_h - self.grad_exact
+        self.cauchy_stress_error = self.cauchy_stress_h - self.cauchy_stress_exact
 
         self.energy_exact = quadrature.energy(self.grad_exact, manufactured_problem.energy_density)
 
@@ -84,6 +88,21 @@ class H1(Metric):
         return measurement.quadrature.FrobeniusNorm(measurement.grad_exact)
 
 
+class CauchyStress(Metric):
+    """L2 norm of the Cauchy stress error, Frobenius over each tensor:
+
+        ‖e‖ = √(∫ ‖e‖_F² dΩ),   e = σ_h - σ
+    """
+
+    name = "CauchyStress"
+
+    def measure(self, measurement):
+        return measurement.quadrature.FrobeniusNorm(measurement.cauchy_stress_error)
+
+    def scale(self, measurement):
+        return measurement.quadrature.FrobeniusNorm(measurement.cauchy_stress_exact)
+
+
 class ErrorEnergy(Metric):
     """The strain energy the error field carries:
 
@@ -124,5 +143,5 @@ class EnergyDifference(Metric):
 #
 # Expected orders are the case's `expectedOrder`, not a constant here: they follow from the element,
 # not the metric, so a P2 case states different numbers for the same metrics (P1: L2 -> 2,
-# H1 -> 1, ErrorEnergy -> 1, EnergyDifference -> 1).
-METRICS = [L2(), H1(), EnergyDifference()]
+# H1 -> 1, CauchyStress -> 1, ErrorEnergy -> 1, EnergyDifference -> 1).
+METRICS = [L2(), H1(), CauchyStress(), EnergyDifference()]
