@@ -42,7 +42,8 @@ class ScenePrefab(Sofa.Prefab):
         # Linear Solver & Preconditioner (optional)
         linear_config = config['linearSolver']
         precond_config = linear_config.get('preconditioner')
-        if precond_config is None:
+        # A preconditioner named by a string is a Data of the solver itself, e.g. EigenBiCGSTAB's.
+        if precond_config is None or isinstance(precond_config, str):
             node.addObject(linear_config['type'], name='linearSolver', **params(linear_config))
         else:
             precond_system_config = precond_config['system']

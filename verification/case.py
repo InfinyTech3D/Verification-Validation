@@ -172,9 +172,6 @@ def _validate_rotation(name, config, geometry):
         raise ValueError(f"{name}: rotation must state 'axis' and one of "
                          f"{sorted(ROTATION_ANGLE_KEYS)}, got {sorted(rotation)}")
     if "angleDegreesPerLength" in rotation:
-        # The pullback of a varying rotation is the polar rotation, in closed form in 2D only.
-        if geometry.spatial_dimensions != 2:
-            raise ValueError(f"{name}: a varying rotation is supported in 2D only")
         unknown = [axis for axis in rotation["angleDegreesPerLength"]
                    if ROTATION_AXES.get(axis, geometry.dim) >= geometry.dim]
         if unknown:
