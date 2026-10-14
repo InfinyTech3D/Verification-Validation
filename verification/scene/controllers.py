@@ -39,13 +39,13 @@ class ApplyManufacturedSourceTerm(Sofa.Core.Controller):
 class ApplyManufacturedTraction(Sofa.Core.Controller):
     """Loads the whole boundary of a mesh with the traction a manufactured solution exerts on it."""
 
-    def __init__(self, geometry, node, dofs, stress, symmetric_stress, vec_type, element,
+    def __init__(self, geometry, node, dofs, fpk_stress, symmetric_stress, vec_type, element,
                  spatial_dimensions, source_quadrature_degree, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.geometry = geometry
         self.node = node
         self.dofs = dofs
-        self.stress = stress
+        self.fpk_stress = fpk_stress
         self.symmetric_stress = symmetric_stress
         self.vec_type = vec_type
         self.element = element
@@ -83,14 +83,14 @@ class ApplyManufacturedTraction(Sofa.Core.Controller):
         template = f'{self.vec_type},{boundary_kind.cpp}'
         # The manufactured stress at every node, in the layout the nodal stress takes: the lower
         # triangle when symmetric, the full matrix row by row otherwise.
-        stress_values = self.stress(rest_positions)
+        fpk_stress_values = self.fpk_stress(rest_positions)
         prefix = 'Symmetric' if self.symmetric_stress else ''
         if self.symmetric_stress:
-            stress_values = stress_values[:, *np.tril_indices(stress_values.shape[-1])]
+            fpk_stress_values = fpk_stress_values[:, *np.tril_indices(fpk_stress_values.shape[-1])]
         self.nodal_stress = boundary.addObject(f'Nodal{prefix}Stress', name='stress',
                                                template=self.vec_type)
         self.nodal_stress.property.value = np.ascontiguousarray(
-            stress_values.reshape(len(stress_values), -1))
+            fpk_stress_values.reshape(len(fpk_stress_values), -1))
 
         boundary.addObject(f'{prefix}StressSourceTerm', name='traction', template=template,
                            stress='@stress')
@@ -109,7 +109,7 @@ class ApplyManufacturedTraction(Sofa.Core.Controller):
 
             indices += nodes
             tractions.append(np.einsum('nij,nj->ni',
-                                       self.stress(rest_positions[nodes]), outward))
+                                       self.fpk_stress(rest_positions[nodes]), outward))
 
         self.point_load = self.node.addObject('ConstantForceField', name='traction',
                                               template=self.vec_type, indices=indices,
