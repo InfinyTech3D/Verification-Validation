@@ -34,6 +34,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
 
 import Sofa.Core
+import Sofa.SofaDeformable
 import Sofa.Simulation
 
 from .metrics import Measurement, METRICS
@@ -79,7 +80,7 @@ def clear_results():
 SURFACE, INK, INK_SOFT, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e8e7e3"
 PLOT_ACCEPTED, PLOT_DISCARDED = to_hex(colormaps["Greens"](0.95)), to_hex(colormaps["Reds"](0.95))
 METRIC_FILL = {"L2": INK, "H1": to_hex(colormaps["Blues"](0.72)),
-               "EnergyDifference": SURFACE}
+               "CauchyStress": to_hex(colormaps["Oranges"](0.6)), "EnergyDifference": SURFACE}
 ELEMENT_MARKER = {"edge": "o", "quad": "s", "hexa": "s", "tri": "^", "tet": "^"}
 
 
@@ -245,7 +246,11 @@ class ErrorConvergenceStudy:
         node_indices = getattr(mechanical.topology, element_kind.data_name).array()
 
         quadrature = MeshQuadrature(nodes, node_indices, element_kind.cpp, self.case.error_quadrature_degree)
-        measurement = Measurement(u_h, mechanical.fem.getPotentialEnergy(),
+        # A hyperelastic force field reports the Cauchy stress through its material component.
+        evaluator = mechanical.material if self.case.material.get('sofa_component_name') else mechanical.fem
+        deformation_gradients = np.eye(nodes.shape[1]) + quadrature.grads(u_h)
+        cauchy_stress_h = Sofa.SofaDeformable.computeCauchyStress(evaluator, deformation_gradients)
+        measurement = Measurement(u_h, mechanical.fem.getPotentialEnergy(), cauchy_stress_h,
                                   self.case.manufactured_problem, quadrature)
 
         level = MeshRefinementLevelResult(
