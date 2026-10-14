@@ -44,10 +44,10 @@ class Material(ABC):
     psi is the elastic energy stored per unit volume.
     It is defined for a given displacement gradient (a d x d matrix, d = spatial dimension).
     Everything else is a derivative of psi:
-      stress(gradient)                        = d(psi)/d(gradient)                     -- a d x d tensor
-      directional_tangent(gradient, direction) = d(stress)/d(gradient), applied to `direction` -- also d x d
+      fpk_stress(gradient)                    = d(psi)/d(gradient)                     -- a d x d tensor
+      directional_tangent(gradient, direction) = d(fpk_stress)/d(gradient), applied to `direction` -- also d x d
 
-    Preferably, for any given material, only psi is declared. stress and tangent are derived by 
+    Preferably, for any given material, only psi is declared. fpk_stress and tangent are derived by 
     symbolic differentiation.
     """
 
@@ -67,22 +67,26 @@ class Material(ABC):
     def energy_density(self, gradient):
         """psi(gradient): the strain energy density, an expression in `gradient`'s symbolic entries."""
 
-    def stress(self, gradient):
+    def fpk_stress(self, gradient):
         """d(psi)/d(gradient), evaluated at the given `gradient`."""
         gradient_symbols = _tensor(gradient.rows, "G")
-        return self._stress(gradient_symbols).subs(dict(zip(gradient_symbols, gradient)))
+        return self._fpk_stress(gradient_symbols).subs(dict(zip(gradient_symbols, gradient)))
+
+    def cauchy_stress(self, gradient):
+        """The Cauchy stress, evaluated at the given `gradient`."""
+        return self.fpk_stress(gradient)
 
     def directional_tangent(self, gradient, direction):
         """d(stress)/d(gradient) applied to `direction`, evaluated at `gradient`."""
         gradient_symbols = _tensor(gradient.rows, "G")
-        symbolic_stress = self._stress(gradient_symbols)
+        symbolic_stress = self._fpk_stress(gradient_symbols)
         rows, columns = gradient_symbols.rows, gradient_symbols.cols
         result = sp.Matrix(rows, columns, lambda i, j: sum(
             sp.diff(symbolic_stress[i, j], gradient_symbols[k, l]) * direction[k, l]
             for k in range(rows) for l in range(columns)))
         return result.subs(dict(zip(gradient_symbols, gradient)))
 
-    def _stress(self, gradient_symbols):
+    def _fpk_stress(self, gradient_symbols):
         """The stress formula in terms of `gradient_symbols`"""
         psi = self.energy_density(gradient_symbols)
         return sp.Matrix(gradient_symbols.rows, gradient_symbols.cols,
@@ -123,6 +127,15 @@ def compile_laws(material, dimensions):
 # --- The materials themselves, one class per type of material. ---
 
 
+class Hyperelastic(Material):
+    """A finite-strain law: psi depends on the full deformation gradient F = I + G."""
+
+    def cauchy_stress(self, gradient):
+        """J^-1 fpk_stress F^T, with J = det F."""
+        deformation = sp.eye(gradient.rows) + gradient
+        return self.fpk_stress(gradient) * deformation.T / deformation.det()
+
+
 class LinearElastic(Material):
     """Hooke: psi = 1/2 lambda tr(eps)^2 + mu eps:eps on the symmetric gradient eps."""
 
@@ -141,7 +154,7 @@ class LinearElastic(Material):
         return self.lam * strain.trace() ** 2 / 2 + self.mu * sum(e ** 2 for e in strain)
 
 
-class MooneyRivlin(Material):
+class MooneyRivlin(Hyperelastic):
     """psi = mu10 (J^(-2/d) I1 - d) + mu01 (J^(-4/d) I2 - d(d-1)/2) + kappa/2 (ln J)^2.
 
     I1 = tr(C) and I2 = (I1^2 - tr(C^2)) / 2 on C = F^T F, J = det F, F = I + G.
@@ -170,7 +183,7 @@ class MooneyRivlin(Material):
                 + self.bulk_modulus * sp.log(jacobian) ** 2 / 2)
 
 
-class NeoHookean(Material):
+class NeoHookean(Hyperelastic):
     """psi = mu/2 (tr(C) - d - 2 ln J) + lambda/2 (ln J)^2 on C = F^T F, J = det F, F = I + G."""
 
     sofa_component_name = "NeoHookeanMaterial"
@@ -190,7 +203,7 @@ class NeoHookean(Material):
                            - 2 * log_jacobian) / 2 + self.lam * log_jacobian ** 2 / 2)
 
 
-class Ogden(Material):
+class Ogden(Hyperelastic):
     """psi = mu/alpha^2 (J^(-alpha/d) tr(C^(alpha/2)) - d) + kappa/2 (ln J)^2 
 
     with C = F^T F, J = det F, F = I + G.
@@ -263,7 +276,7 @@ class Ogden(Material):
                 + self.kappa * sp.log(jacobian) ** 2 / 2)
 
 
-class SaintVenantKirchhoff(Material):
+class SaintVenantKirchhoff(Hyperelastic):
     """psi = 1/2 lambda tr(E)^2 + mu E:E on the Green-Lagrange strain E = (F^T F - I) / 2, F = I + G.
 
     Stores nothing under a rigid rotation, and tends to LinearElastic as the gradient goes to zero.
