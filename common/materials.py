@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 
-import numpy as np
 import sympy as sp
 
 
@@ -91,37 +90,6 @@ class Material(ABC):
         psi = self.energy_density(gradient_symbols)
         return sp.Matrix(gradient_symbols.rows, gradient_symbols.cols,
                          lambda i, j: sp.diff(psi, gradient_symbols[i, j]))
-
-
-def compile_laws(material, dimensions):
-    """Compile and hand back a material's psi and tangent into plain numpy functions over batches of gradients."""
-    gradient, direction = _tensor(dimensions, "G"), _tensor(dimensions, "D")
-    arguments = list(gradient) + list(direction)
-    energy_law = sp.lambdify(list(gradient), material.energy_density(gradient).xreplace(material.parameter_values),
-                             "numpy")
-    directional_tangent_law = [sp.lambdify(arguments, entry.xreplace(material.parameter_values), "numpy")
-                               for entry in material.directional_tangent(gradient, direction)]
-
-    def columns_of(values):
-        values = np.asarray(values, dtype=float)
-        return values, [values[..., i, j]
-                        for i in range(dimensions) for j in range(dimensions)]
-
-    def compiled_energy_density(gradients):
-        values, columns = columns_of(gradients)
-        return np.broadcast_to(np.asarray(energy_law(*columns), dtype=float), values.shape[:-2])
-
-    def compiled_directional_tangent(at, applied_to):
-        base, base_columns = columns_of(at)
-        applied, applied_columns = columns_of(applied_to)
-        batch = np.broadcast_shapes(base.shape[:-2], applied.shape[:-2])
-        result = np.empty(batch + (dimensions, dimensions), dtype=float)
-        for (i, j), component in zip(np.ndindex(dimensions, dimensions), directional_tangent_law):
-            result[..., i, j] = np.broadcast_to(
-                np.asarray(component(*base_columns, *applied_columns), dtype=float), batch)
-        return result
-
-    return compiled_energy_density, compiled_directional_tangent
 
 
 # --- The materials themselves, one class per type of material. ---

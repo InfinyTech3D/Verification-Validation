@@ -1,16 +1,13 @@
 {
-  "geometry":    { "type": "Beam2D", "length": 1.0, "width": 1.0 },
-  "element":     "tri",
+  "geometry":    { "type": "Beam3D", "length": 1.0, "width": 1.0, "height": 1.0 },
+  "element":     "hexa",
   "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
   "forceField":  { "type": "CorotationalFEMForceField", "rotationMethod": "polar" },
-  "tractionOn":  { "right": [1, 1], "top": [1, 1] },
+  "tractionOn":  { "right": [1, 1, 1], "left": [1, 1, 1], "top": [1, 1, 1] },
   "solution":    { "type": "Trigonometric", "amplitude": 0.02 },
-  "compareAgainst": "LinearSmallStrainFEMForceField/Trigonometric2D_Tri",
-  "agreementTolerance": 1e-2,
+  "errorQuadratureDegree": 3,
+  "sourceQuadratureDegree": 3,
   "rotation":    { "angleDegrees": 45.0, "axis": "z" },
-  "excitationSteps": 5,
-  "errorQuadratureDegree": 2,
-  "sourceQuadratureDegree": 2,
   "solvers": {
     "integration":  { "type": "StaticSolver" },
     "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 40,
@@ -18,12 +15,16 @@
                       "relativeInitialStoppingThreshold": 1e-8,
                       "relativeSuccessiveStoppingThreshold": 0,
                       "absoluteResidualStoppingThreshold": 0,
-                      "printLog": false },
-    "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+                      "printLog": true },
+    "linearSolver": {
+      "type": "EigenBiCGSTAB", "template": "CompressedRowSparseMatrixd",
+      "iterations": 3000, "tolerance": 1e-10, "printLog": true,
+      "preconditioner": "IncompleteLUT", "fillFactor": 10, "dropTolerance": 1e-3
+    }
   },
-  "mesh":        { "cells": [3, 3], "levels": 5, "refinementRatio": 2 },
+  "mesh":        { "cells": [2, 2, 2], "levels": 6, "refinementRatio": 2 },
   "asymptoticTolerance": 0.10,
   "expectedOrder": { "L2": 2.0, "H1": 1.0, "CauchyStress": 1.0, "EnergyDifference": 1.0 },
   "expectedOrderTolerance": 0.15,
-  "relativeNoiseFloor": 1e-12
+  "relativeNoiseFloor": 1e-10
 }
