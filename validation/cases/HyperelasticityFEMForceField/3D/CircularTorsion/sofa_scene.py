@@ -20,7 +20,7 @@ PLUGINS = [
     "Sofa.Component.Engine.Select",
     "Sofa.Component.IO.Mesh",
     "Sofa.Component.LinearSolver.Direct",
-    "Sofa.Component.ODESolver.Backward",
+    "Sofa.Component.IntegrationScheme.Backward",
     "Sofa.Component.SolidMechanics.FEM.Elastic",
     "Sofa.Component.SolidMechanics.FEM.HyperElastic",
     "Sofa.Component.StateContainer",

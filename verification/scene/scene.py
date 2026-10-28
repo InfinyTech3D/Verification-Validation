@@ -23,7 +23,7 @@ class MMSScene(SofaScene):
         "Sofa.Component.LinearSolver.Iterative",
         "Sofa.Component.LinearSolver.Preconditioner",
         "Sofa.Component.LinearSystem",
-        "Sofa.Component.ODESolver.Backward",
+        "Sofa.Component.IntegrationScheme.Backward",
         "Sofa.Component.StateContainer",
         "Sofa.Component.Topology.Container.Grid",
         "Sofa.Component.Topology.Container.Dynamic",

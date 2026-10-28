@@ -20,7 +20,7 @@ PLUGINS = [
     "Sofa.Component.Constraint.Projective",
     "Sofa.Component.LinearSolver.Direct",
     "Sofa.Component.MechanicalLoad",
-    "Sofa.Component.ODESolver.Backward",
+    "Sofa.Component.IntegrationScheme.Backward",
     "Sofa.Component.SolidMechanics.FEM.Elastic",
     "Sofa.Component.SolidMechanics.FEM.HyperElastic",
     "Sofa.Component.StateContainer",
