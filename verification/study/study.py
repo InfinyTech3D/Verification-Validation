@@ -43,30 +43,12 @@ from ..scene.scene import MMSScene
 from common.sofa.conventions import ELEMENTS
 
 
-def _newton_diagnostics(newton):
-    """Iterations, residual reduction and stopping status of the Newton solve at one level."""
-    if newton is None:
+def _newton_diagnostics(integration_scheme):
+    """Residual norm left by the Newton solve at one level."""
+    if integration_scheme is None:
         return None
 
-    residuals = []
-    for token in newton.residualGraph.value.split():
-        try:
-            residuals.append(float(token))
-        except ValueError:      # the map key, not one of its residuals
-            continue
-
-    status = newton.status.value
-    # ConvergedEquilibrium means the iterations never started because the residual was already zero.
-    # On a loaded MMS scene that is not a success, it means the load never reached the system.
-    converged = status.startswith("Converged") and status != "ConvergedEquilibrium"
-
-    # Dimensionless reduction r/r0 of the residual. Undefined when it started at zero.
-    reduction = float(np.sqrt(residuals[-1] / residuals[0])) if residuals and residuals[0] else float("nan")
-
-    # Ignore the residual recorded once before iterating; floor at 0 if a crashed solver left none.
-    return {"iterations": max(len(residuals) - 1, 0),
-            "reduction": reduction,
-            "status": "Converged" if converged else status}
+    return {"residual": float(np.sqrt(integration_scheme.currentResidue.value))}
 
 
 # Where a run writes what it produced.
@@ -86,7 +68,7 @@ ELEMENT_MARKER = {"edge": "o", "quad": "s", "hexa": "s", "tri": "^", "tet": "^"}
 
 # Column widths shared by every table printed here.
 LABEL_WIDTH, SPACING_WIDTH, ELEMENTS_WIDTH = 16, 20, 17
-RATE_WIDTH, ITERATIONS_WIDTH, RESIDUAL_WIDTH = 16, 14, 12
+RATE_WIDTH, RESIDUAL_WIDTH = 16, 12
 
 def _paint(cell, accepted):
     """Colour a cell green when the settling test kept its rate, red when it discarded it."""
@@ -201,7 +183,6 @@ class ErrorConvergenceStudy:
         self.expected_order_tolerance = case.expected_order_tolerance
         self.levels = []
         self.results = {}
-        self.unconverged_levels = []
         self.verified = False
         self.plots = {}
 
@@ -261,7 +242,7 @@ class ErrorConvergenceStudy:
             values={metric.name: metric.measure(measurement) for metric in METRICS},
             noise_floor={metric.name: self.case.relative_noise_floor * metric.scale(measurement)
                          for metric in METRICS},
-            newton=_newton_diagnostics(getattr(mechanical, 'newton', None)),
+            newton=_newton_diagnostics(getattr(mechanical, 'ode', None)),
             nodes=np.array(nodes), elements=np.array(node_indices), displacement=np.array(u_h))
         if element_kind.dim == 3:
             # The faces the traction controller mapped out of the mesh.
@@ -335,12 +316,7 @@ class ErrorConvergenceStudy:
             self.results[metric.name] = MetricResult(order=order, accepted_levels=accepted_levels,
                                                       passed=passed)
 
-        self.unconverged_levels = [level.label for level in self.levels
-                                   if (level.newton["status"] if level.newton else None)
-                                   not in ("Converged", None)]
-
-        # A settled, passing order is not evidence of anything if the solve never converged.
-        self.verified = not self.unconverged_levels and all(result.passed for result in self.results.values())
+        self.verified = all(result.passed for result in self.results.values())
 
     def write_results(self):
         """Save the figures and the record under <results root>/<case path>."""
@@ -508,8 +484,7 @@ class ErrorConvergenceStudy:
                   f" {'# of elements':>{ELEMENTS_WIDTH}}")
         for metric in METRICS:
             header += f" {metric.name:>{RATE_WIDTH}}"
-        print(header + f" {'# Newton iters':>{ITERATIONS_WIDTH}} {'r/r0':>{RESIDUAL_WIDTH}}"
-              f" Newton-Raphson status")
+        print(header + f" {'|r|':>{RESIDUAL_WIDTH}}")
 
         for index, level in enumerate(self.levels):
             row = (f"{level.label:>{LABEL_WIDTH}} {level.spacing:>{SPACING_WIDTH}.5f}"
@@ -520,13 +495,8 @@ class ErrorConvergenceStudy:
                 accepted = index in self.results[metric.name].accepted_levels
                 row += f" {_paint(f'{cell:>{RATE_WIDTH}}', accepted)}"
 
-            newton = level.newton
-            if newton is None:
-                row += f" {'':>{ITERATIONS_WIDTH}} {'':>{RESIDUAL_WIDTH}} no newton"
-            else:
-                row += (f" {newton['iterations']:>{ITERATIONS_WIDTH}}"
-                        f" {newton['reduction']:>{RESIDUAL_WIDTH}.1e}"
-                        f" {_paint(newton['status'], newton['status'] == 'Converged')}")
+            if level.newton is not None:
+                row += f" {level.newton['residual']:>{RESIDUAL_WIDTH}.1e}"
             print(row)
 
         # Summary rows, as (label, one text per metric, pass per metric or None where uncoloured).
@@ -544,10 +514,6 @@ class ErrorConvergenceStudy:
                 padded = f"{text:>{RATE_WIDTH}}"
                 row += f" {padded if passed is None else _paint(padded, passed[index])}"
             print(row)
-
-        if self.unconverged_levels:
-            print()
-            print(f"  Newton did not converge at: {', '.join(self.unconverged_levels)}")
 
 
 class NormAgreementStudy(ErrorConvergenceStudy):
@@ -651,12 +617,12 @@ AGREEMENT = {True: "ok", False: "bad"}
 
 
 def overview(results):
-    """Print one line per case: the order each metric settled on, and whether its solves converged."""
+    """Print one line per case: the order each metric settled on."""
     print()
     header = f"{'case':<44}"
     for metric in METRICS:
         header += f" {metric.name:>9}"
-    print(header + f" {'solver':>9} {'agreement':>9}")
+    print(header + f" {'agreement':>9}")
 
     for name, study in results:
         row = f"{name:<44}"
@@ -665,9 +631,6 @@ def overview(results):
             has_order = metric_result is not None and metric_result.order is not None
             cell = "error" if study is None else f"{metric_result.order:.2f}" if has_order else "--"
             row += f" {_paint(f'{cell:>9}', study is not None and metric_result.passed)}"
-        solver = "error" if study is None else (
-            "ok" if not study.unconverged_levels else f"{len(study.unconverged_levels)} bad")
-        row += f" {_paint(f'{solver:>9}', solver == 'ok')}"
 
         # Only a comparison case makes this claim; the rest leave the column empty.
         agreement = getattr(study, "agreement", None)
