@@ -9,11 +9,8 @@
   "errorQuadratureDegree": 3,
   "sourceQuadratureDegree": 3,
   "solvers": {
-    "integration":  { "type": "StaticSolver" },
-    "newton":       { "type": "NewtonRaphsonSolver", "maxNbIterationsNewton": 10,
-                      "relativeInitialStoppingThreshold": 1e-8,
-                      "relativeSuccessiveStoppingThreshold": 0,
-                      "absoluteResidualStoppingThreshold": 0,
+    "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 10,
+                      "residueThreshold": 1e-14, "alwaysAdvanceNewton": true,
                       "printLog": true },
     "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
   },
