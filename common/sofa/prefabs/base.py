@@ -43,12 +43,7 @@ class ScenePrefab(Sofa.Prefab):
 
     @staticmethod
     def add_solvers(node, config):
-        """Newton (if present) + linear solver (+ preconditioner) + integration scheme."""
-
-        # Newton Solver
-        newton_config = config.get('newton')
-        if newton_config is not None:
-            node.addObject(newton_config['type'], name='newton', **params(newton_config))
+        """Linear solver (+ preconditioner) + integration scheme."""
 
         # Linear Solver & Preconditioner (optional)
         linear_config = config['linearSolver']
@@ -71,6 +66,4 @@ class ScenePrefab(Sofa.Prefab):
         # ODE Integration Scheme
         integration_scheme = params(config['integration'])
         integration_scheme['linearSolver'] = '@linearSolver'
-        if newton_config is not None:
-            integration_scheme['newtonSolver'] = '@newton'
         node.addObject(config['integration']['type'], name='ode', **integration_scheme)
