@@ -80,13 +80,13 @@ class ApplyManufacturedTraction(Sofa.Core.Controller):
 
         # Apply the nodal stress load on the boundary.
         template = f'{self.vec_type},{boundary_kind.cpp}'
-        # The manufactured stress at every node, converted to the layout NodalStress takes.
+        # The manufactured stress at every node, converted to the layout NodalSymmetricStress takes.
         stress_values = self.stress(rest_positions)
         rows, columns = np.tril_indices(stress_values.shape[-1])
-        self.nodal_stress = boundary.addObject('NodalStress', name='stress', template=self.vec_type)
+        self.nodal_stress = boundary.addObject('NodalSymmetricStress', name='stress', template=self.vec_type)
         self.nodal_stress.property.value = np.ascontiguousarray(stress_values[:, rows, columns])
 
-        boundary.addObject('StressSourceTerm', name='traction', template=template, stress='@stress')
+        boundary.addObject('SymmetricStressSourceTerm', name='traction', template=template, stress='@stress')
         boundary.addObject('FEMSourceTermIntegrator', name='tractionSource', template=template,
                            topology='@topology', quadratureDegree=self.source_quadrature_degree,
                            constantSources='@traction')
