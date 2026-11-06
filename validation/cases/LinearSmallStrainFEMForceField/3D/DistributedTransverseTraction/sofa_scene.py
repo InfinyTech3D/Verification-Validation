@@ -17,7 +17,7 @@ PLUGINS = [
     "Sofa.Component.Constraint.Projective",
     "Sofa.Component.Engine.Select",
     "Sofa.Component.LinearSolver.Direct",
-    "Sofa.Component.ODESolver.Backward",
+    "Sofa.Component.IntegrationScheme.Backward",
     "Sofa.Component.SolidMechanics.FEM.Elastic",
     "Sofa.Component.StateContainer",
     "Sofa.Component.Topology.Container.Dynamic",
