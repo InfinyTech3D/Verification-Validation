@@ -226,7 +226,9 @@ class ErrorConvergenceStudy:
         node_indices = getattr(mechanical.topology, element_kind.data_name).array()
 
         quadrature = MeshQuadrature(nodes, node_indices, element_kind.cpp, self.case.error_quadrature_degree)
-        measurement = Measurement(u_h, mechanical.fem.getPotentialEnergy(),
+        element_rotations = (mechanical.fem.getElementRotations()
+                             if self.case.force_field["type"] == "CorotationalFEMForceField" else None)
+        measurement = Measurement(u_h, element_rotations, mechanical.fem.getPotentialEnergy(),
                                   self.case.manufactured_problem, quadrature)
 
         level = MeshRefinementLevelResult(

@@ -8,7 +8,7 @@ import numpy as np
 class Measurement:
     """One solved mesh refinement level, sampled at its quadrature points."""
 
-    def __init__(self, displacement, energy_h, manufactured_problem, quadrature):
+    def __init__(self, displacement, element_rotations, energy_h, manufactured_problem, quadrature):
         # ManufacturedProblem Class
         self.manufactured_problem = manufactured_problem
 
@@ -18,10 +18,13 @@ class Measurement:
         # The FEM displacement and its gradient, interpolated from the field SOFA solved for to the
         # quadrature points.
         self.u_h = quadrature.values(displacement)
-        # Transofrm gradient back into the frame the material law is applied in to measure strain in
-        # the unrotated frame.
-        self.grad_h = manufactured_problem.local_gradient(quadrature.grads(displacement),
-                                                         quadrature.points)
+        # Pulled back by the element rotations the force field computed.
+        gradients = quadrature.grads(displacement)
+        if element_rotations is None:
+            self.grad_h = gradients
+        else:
+            identity = np.eye(gradients.shape[-1])
+            self.grad_h = np.einsum('eji,eqjk->eqik', element_rotations, identity + gradients) - identity
         # The strain energy SOFA reports for that same solution, from its own element stiffness.
         self.energy_h = energy_h
 
