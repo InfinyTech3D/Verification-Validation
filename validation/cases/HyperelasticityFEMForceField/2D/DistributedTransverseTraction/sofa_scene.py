@@ -17,7 +17,7 @@ from common.sofa.prefabs import ElasticBeam
 PLUGINS = [
     "Sofa.Component.Constraint.Projective",
     "Sofa.Component.LinearSolver.Direct",
-    "Sofa.Component.ODESolver.Backward",
+    "Sofa.Component.IntegrationScheme.Backward",
     "Sofa.Component.SolidMechanics.FEM.Elastic",
     "Sofa.Component.SolidMechanics.FEM.HyperElastic",
     "Sofa.Component.StateContainer",
