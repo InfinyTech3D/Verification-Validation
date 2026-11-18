@@ -1,0 +1,92 @@
+{
+  "SaintVenantKirchhoff_hexa": {
+    "geometry":   { "type": "Beam3D", "length": 1.0, "width": 0.2, "height": 0.2 },
+    "element":    "hexa",
+    "material":   { "type": "SaintVenantKirchhoff", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 20,
+                        "residualThreshold": 1e-16, "alwaysAdvanceNewton": true },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [11, 5, 5] },
+    "load":       { "type": "torque", "magnitude": 0.05, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "SaintVenantKirchhoff_tet": {
+    "geometry":   { "type": "Beam3D", "length": 1.0, "width": 0.2, "height": 0.2 },
+    "element":    "tet",
+    "swapping":   true,
+    "gridMapping": { "swapping": true },
+    "material":   { "type": "SaintVenantKirchhoff", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 20,
+                        "residualThreshold": 1e-16, "alwaysAdvanceNewton": true },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [11, 5, 5] },
+    "load":       { "type": "torque", "magnitude": 0.05, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "NeoHookean_hexa": {
+    "geometry":   { "type": "Beam3D", "length": 1.0, "width": 0.2, "height": 0.2 },
+    "element":    "hexa",
+    "material":   { "type": "NeoHookean", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 20,
+                        "residualThreshold": 1e-16, "alwaysAdvanceNewton": true },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [11, 5, 5] },
+    "load":       { "type": "torque", "magnitude": 0.05, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "NeoHookean_tet": {
+    "geometry":   { "type": "Beam3D", "length": 1.0, "width": 0.2, "height": 0.2 },
+    "element":    "tet",
+    "swapping":   true,
+    "gridMapping": { "swapping": true },
+    "material":   { "type": "NeoHookean", "youngModulus": 1000.0, "poissonRatio": 0.3 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 20,
+                        "residualThreshold": 1e-16, "alwaysAdvanceNewton": true },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [11, 5, 5] },
+    "load":       { "type": "torque", "magnitude": 0.05, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "MooneyRivlin_hexa": {
+    "geometry":   { "type": "Beam3D", "length": 1.0, "width": 0.2, "height": 0.2 },
+    "element":    "hexa",
+    "material":   { "type": "MooneyRivlin", "mu10": 96.153846, "mu01": 96.153846, "bulkModulus": 833.333333 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 20,
+                        "residualThreshold": 1e-16, "alwaysAdvanceNewton": true },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [11, 5, 5] },
+    "load":       { "type": "torque", "magnitude": 0.05, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  },
+  "MooneyRivlin_tet": {
+    "geometry":   { "type": "Beam3D", "length": 1.0, "width": 0.2, "height": 0.2 },
+    "element":    "tet",
+    "swapping":   true,
+    "gridMapping": { "swapping": true },
+    "material":   { "type": "MooneyRivlin", "mu10": 96.153846, "mu01": 96.153846, "bulkModulus": 833.333333 },
+    "forceField": { "type": "HyperelasticityFEMForceField" },
+    "solvers": {
+      "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 20,
+                        "residualThreshold": 1e-16, "alwaysAdvanceNewton": true },
+      "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+    },
+    "mesh":       { "resolution": [11, 5, 5] },
+    "load":       { "type": "torque", "magnitude": 0.05, "steps": 5 },
+    "tolerance":  { "rms": 1e-6 }
+  }
+}
