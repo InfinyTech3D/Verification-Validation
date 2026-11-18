@@ -5,7 +5,7 @@
   "forceField":  { "type": "HyperelasticityFEMForceField" },
   "tractionOn":  { "front": [1, 1, 1], "back": [1, 1, 1] },
   "solution":    { "type": "Quartic", "amplitude": 0.1 },
-  "excitationSteps": 1,
+  "excitationSteps": 5,
   "errorQuadratureDegree": 2,
   "sourceQuadratureDegree": 2,
   "solvers": {
