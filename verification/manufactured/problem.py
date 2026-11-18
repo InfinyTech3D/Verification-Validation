@@ -2,6 +2,8 @@
 from the pair.
 """
 
+import sys
+
 import numpy as np
 import sympy as sp
 
@@ -11,6 +13,13 @@ _COMPONENT_NAMES = ("u_x", "u_y", "u_z")
 
 # Rotation axis -> the two axes it turns, ordered to yield positive angle in right-handed system.
 _ROTATION_PLANE = {"x": (1, 2), "y": (2, 0), "z": (0, 1)}
+
+
+def _report_symbolic_status(stage):
+    """Report on the symbolic stage under way."""
+    if sys.stdout.isatty():
+        sys.stdout.write(f"\r\033[K{stage}")
+        sys.stdout.flush()
 
 
 def rotation_matrix(config, dimensions):
@@ -73,6 +82,7 @@ class ManufacturedProblem:
         direction_symbols = sp.Matrix(dimensions, dimensions, lambda i, j: sp.Symbol(f"D_{i}_{j}"))
         matrix = (dimensions, dimensions)
 
+        _report_symbolic_status(f"  {type(material).__name__}: compiling the material laws")
         # psi(G)
         self.energy_density = self._compile([material.energy_density(gradient_symbols)], [gradient_symbols], ())
         # dP/dG : D
@@ -105,6 +115,7 @@ class ManufacturedProblem:
         # grad u(x)
         self.grad_u = self._compile(gradient, [position], matrix)
 
+        _report_symbolic_status(f"  {type(material).__name__}: differentiating the strain energy")
         if rotation is None:
             # P = P_law(grad u),  sigma = sigma_law(grad u)
             self._derive_fields_symbolically(material.fpk_stress(gradient), material.cauchy_stress(gradient),
@@ -152,6 +163,7 @@ class ManufacturedProblem:
                     gradient,
                     self._compile(material.fpk_stress(gradient_symbols), [gradient_symbols], matrix),
                     self._compile(material.cauchy_stress(gradient_symbols), [gradient_symbols], matrix))
+        _report_symbolic_status("")
 
     def rigid_positions(self, rest):
         """R X: the rest configuration turned by this problem's rotation, itself where there is none.
@@ -197,11 +209,13 @@ class ManufacturedProblem:
         position, matrix = list(self.coordinates), (dimensions, dimensions)
         # P
         self.fpk_stress_expression = fpk_stress
+        _report_symbolic_status(f"  {type(self.material).__name__}: taking the divergence for the body force")
         # s_i = -sum_j dP_ij/dx_j
         self.source_expression = -sp.Matrix([sum(sp.diff(fpk_stress[i, j], self.coordinates[j])
                                                   for j in range(dimensions))
                                               for i in range(dimensions)])
 
+        _report_symbolic_status(f"  {type(self.material).__name__}: compiling the fields")
         # P(x)
         self.fpk_stress = self._compile(fpk_stress, [position], matrix)
         # sigma(x)
@@ -278,7 +292,8 @@ class ManufacturedProblem:
         """
         arguments = [np.array(argument, dtype=object) for argument in arguments]
         symbols = [symbol for argument in arguments for symbol in argument.flat]
-        entries = [sp.lambdify(symbols, entry.xreplace(self.parameter_values), "numpy") for entry in expression]
+        entries = [sp.lambdify(symbols, entry.xreplace(self.parameter_values), "numpy", cse=True)
+                   for entry in expression]
 
         def compiled(*values):
             values = [np.asarray(value, dtype=float) for value in values]
@@ -287,8 +302,9 @@ class ManufacturedProblem:
             columns = [value[(...,) + index]
                        for value, argument in zip(values, arguments) for index in np.ndindex(argument.shape)]
             result = np.empty(batch + shape, dtype=float)
-            for index, entry in zip(np.ndindex(*shape), entries):
-                result[(...,) + index] = entry(*columns)
+            with np.errstate(invalid="ignore", divide="ignore"):
+                for index, entry in zip(np.ndindex(*shape), entries):
+                    result[(...,) + index] = entry(*columns)
             return result
 
         return compiled

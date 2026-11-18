@@ -179,8 +179,8 @@ class Ogden(Hyperelastic):
     Formally, alpha can take any real value; zero alone is excluded, since it divides. However,
     there is a limitation in terms of symbolic differentiation here: tr(C^(alpha/2)) sums the
     eigenvalues of C, and beyond a 2x2 those have no closed form that survives differentiation. So
-    2D takes any non-zero alpha, while 3D takes even alpha, where C^(alpha/2) is a plain matrix
-    power and no eigenvalue is needed.
+    2D takes any non-zero alpha, while 3D takes even alpha exactly, where C^(alpha/2) is a plain
+    matrix power, and any other alpha through a series that holds near the isotropic state.
     """
 
     sofa_component_name = "OgdenMaterial"
@@ -234,10 +234,47 @@ class Ogden(Hyperelastic):
             #   otherwise         ->  roots, where D still holds ~10 significant digits
             stretch_sum = sp.Piecewise((expansion, discriminant < trace ** 2 / 10 ** 6),
                                        (through_roots, True))
+        elif dimensions == 3:
+            # In 3D the eigenvalues are c plus the roots of the deviator's cubic t^3 - J2 t - J3:
+            #   c = tr(C)/3,  C' = C - c I,  J2 = tr(C'^2)/2,  J3 = det(C')
+            mean = cauchy_green.trace() / 3
+            deviator = cauchy_green - mean * sp.eye(3)
+            second = (deviator * deviator).trace() / 2
+            third = deviator.det()
+
+            # The trace expressed through Viete's trigonometric solution of that cubic, exact at any
+            # anisotropy and kept here for the record. Differentiating its arccos ran for over two
+            # hours on a 3D deck, and a Piecewise pays for it whether or not the branch is reached.
+            #   tr(C^(alpha/2)) = sum_k (c + 2 sqrt(J2/3) cos(phi - 2 pi k / 3))^(alpha/2),
+            #   phi = arccos(J3 / (2 (J2/3)^(3/2))) / 3
+            # radius = sp.sqrt(second / 3)
+            # angle = sp.acos(third / (2 * radius ** 3)) / 3
+            # through_roots = sum((mean + 2 * radius * sp.cos(angle - 2 * sp.pi * order / 3))
+            #                     ** exponent for order in range(3))
+
+            # The trace expressed as an expansion about the isotropic state C = c I, where every
+            # power sum of the deviator's eigenvalues is a trace of its powers, so no root appears
+            #   tr(C^(alpha/2)) = sum_k binom(alpha/2, k) c^(alpha/2 - k) tr(C'^k)
+            # Cayley-Hamilton on a traceless 3x3, C'^3 = J2 C' + J3 I, carries those traces as
+            #   tr(C'^(k+3)) = J2 tr(C'^(k+1)) + J3 tr(C'^k),   opening on 3, 0, 2 J2
+            # so nothing above C'^2 is ever formed; raising the matrix itself costs 80s by six terms.
+            # Six is where the accuracy stops mattering and the compile still does: the sixth term
+            # leaves 7e-12 at the amplitudes run here, and each further one triples the compile.
+            power_traces = [sp.Integer(3), sp.Integer(0), 2 * second]
+            for order in range(3, 6):
+                power_traces.append(second * power_traces[order - 2]
+                                    + third * power_traces[order - 3])
+            expansion = sum(sp.binomial(exponent, order) * mean ** (exponent - order)
+                            * power_traces[order] for order in range(6))
+
+            # The expansion holds while C stays near c I and diverges once the deviator rivals the
+            # mean. NaN past that keeps it a loud failure rather than a quietly wrong psi.
+            #   J2 < tr(C)^2 1e-3  ->  expansion, accurate to 1e-8 or better there
+            #   otherwise          ->  NaN, where the roots above would have taken over
+            stretch_sum = sp.Piecewise(
+                (expansion, second < cauchy_green.trace() ** 2 / 10 ** 3), (sp.nan, True))
         else:
-            raise ValueError(f"alpha = {self.parameter_values[self.alpha]} needs the eigenvalues of C, which beyond a 2x2 "
-                             f"have no closed form that survives differentiation; at {dimensions}D "
-                             f"alpha must be even")
+            raise ValueError(f"alpha = {self.parameter_values[self.alpha]} at {dimensions}D is not exercised")
 
         return (self.mu / self.alpha ** 2
                 * (jacobian ** (-self.alpha / dimensions) * stretch_sum - dimensions)
