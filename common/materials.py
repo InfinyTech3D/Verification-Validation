@@ -259,7 +259,7 @@ class Ogden(Hyperelastic):
             #   tr(C'^(k+3)) = J2 tr(C'^(k+1)) + J3 tr(C'^k),   opening on 3, 0, 2 J2
             # so nothing above C'^2 is ever formed; raising the matrix itself costs 80s by six terms.
             # Six is where the accuracy stops mattering and the compile still does: the sixth term
-            # leaves 7e-12 at the amplitudes run here, and each further one triples the compile.
+            # leaves 1e-5 in the stress at the amplitudes run here, and each further one triples the compile.
             power_traces = [sp.Integer(3), sp.Integer(0), 2 * second]
             for order in range(3, 6):
                 power_traces.append(second * power_traces[order - 2]
@@ -269,10 +269,10 @@ class Ogden(Hyperelastic):
 
             # The expansion holds while C stays near c I and diverges once the deviator rivals the
             # mean. NaN past that keeps it a loud failure rather than a quietly wrong psi.
-            #   J2 < tr(C)^2 1e-3  ->  expansion, accurate to 1e-8 or better there
+            #   J2 < tr(C)^2 1e-2  ->  expansion, stress accurate to ~1e-5 there
             #   otherwise          ->  NaN, where the roots above would have taken over
             stretch_sum = sp.Piecewise(
-                (expansion, second < cauchy_green.trace() ** 2 / 10 ** 3), (sp.nan, True))
+                (expansion, second < cauchy_green.trace() ** 2 / 10 ** 2), (sp.nan, True))
         else:
             raise ValueError(f"alpha = {self.parameter_values[self.alpha]} at {dimensions}D is not exercised")
 
