@@ -13,6 +13,7 @@ import numpy as np
 from common.geometry import Beam2D
 from common.sofa.conventions import ELEMENTS
 from common.sofa.prefabs import ElasticBeam
+from common.sofa.controllers import unload
 
 PLUGINS = [
     "Sofa.Component.Constraint.Projective",
@@ -84,6 +85,7 @@ def solve(case):
     x0 = mechanical.dofs.rest_position.array()[:, :2].copy()
     u = mechanical.dofs.position.array()[:, :2] - x0
     cells = getattr(mechanical.topology, ELEMENTS[case['element']].data_name).array().copy()
+    unload(root)
     return x0, u, cells
 
 

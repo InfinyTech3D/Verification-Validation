@@ -10,6 +10,7 @@ for path in (CASE_DIR, REPO_ROOT):
 
 from common.sofa.conventions import ELEMENTS
 from common.sofa.prefabs.base import ScenePrefab
+from common.sofa.controllers import unload
 
 PLUGINS = [
     "Sofa.Component.Constraint.Projective",
@@ -96,6 +97,7 @@ def solve(case):
     boundary_kind_name, _ = ELEMENTS[case['element']].boundary_mappings[0]
     boundary = mechanical.getChild(boundary_kind_name).topology
     faces = getattr(boundary, ELEMENTS[boundary_kind_name].data_name).array().copy()
+    unload(root)
     return x0, u, faces
 
 

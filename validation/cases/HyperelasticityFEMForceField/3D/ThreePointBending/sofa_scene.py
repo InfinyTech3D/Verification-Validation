@@ -13,7 +13,7 @@ import numpy as np
 from common.materials import MATERIALS
 from common.geometry import Beam3D
 from common.sofa.conventions import ELEMENTS
-from common.sofa.controllers import LoadRamp
+from common.sofa.controllers import LoadRamp, unload
 from common.sofa.prefabs import ElasticBeam
 
 PLUGINS = [
@@ -106,6 +106,7 @@ def solve(case):
     boundary_kind_name, _ = ELEMENTS[case['element']].boundary_mappings[0]
     boundary = mechanical.getChild(boundary_kind_name).topology
     faces = getattr(boundary, ELEMENTS[boundary_kind_name].data_name).array().copy()
+    unload(root)
     return x0, u, faces
 
 

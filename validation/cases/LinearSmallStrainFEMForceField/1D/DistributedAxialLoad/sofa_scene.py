@@ -10,7 +10,7 @@ for path in (CASE_DIR, REPO_ROOT):
 
 from common.geometry import Bar1D
 from common.sofa.conventions import ELEMENTS, VEC_DIM
-from common.sofa.controllers import RegionClamp
+from common.sofa.controllers import RegionClamp, unload
 from common.sofa.prefabs import ElasticBar
 
 PLUGINS = [
@@ -78,6 +78,7 @@ def solve(case):
     x = mechanical.dofs.rest_position.array()[:, 0].copy()
     u = mechanical.dofs.position.array()[:, 0] - x
     cells = getattr(mechanical.topology, ELEMENTS[case['element']].data_name).array().copy()
+    unload(root)
     return x, u, cells
 
 

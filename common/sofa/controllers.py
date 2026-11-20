@@ -2,6 +2,24 @@
 
 import numpy as np
 import Sofa.Core
+import Sofa.Simulation
+
+
+def unload(root):
+    """Unload the scene under `root` so that its memory is actually freed.
+
+    A Python controller holding a reference into its own graph forms a C++/Python cycle the
+    garbage collector cannot see, which keeps the whole graph alive: drop those references first.
+    """
+    def release(node):
+        for component in node.objects:
+            if isinstance(component, Sofa.Core.Controller):
+                component.__dict__.clear()
+        for child in node.children:
+            release(child)
+
+    release(root)
+    Sofa.Simulation.unload(root)
 
 
 class RegionClamp(Sofa.Core.Controller):

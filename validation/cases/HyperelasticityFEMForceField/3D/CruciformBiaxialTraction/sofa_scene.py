@@ -11,7 +11,7 @@ for path in (CASE_DIR, REPO_ROOT):
         sys.path.insert(0, path)
 
 from common.materials import MATERIALS
-from common.sofa.controllers import LoadRamp
+from common.sofa.controllers import LoadRamp, unload
 from common.sofa.conventions import ELEMENTS
 from common.sofa.prefabs.base import ScenePrefab
 
@@ -130,6 +130,7 @@ def solve(case):
     boundary_kind_name, _ = ELEMENTS[case['element']].boundary_mappings[0]
     boundary = mechanical.getChild(boundary_kind_name).topology
     faces = getattr(boundary, ELEMENTS[boundary_kind_name].data_name).array().copy()
+    unload(root)
     return x0, u, faces
 
 

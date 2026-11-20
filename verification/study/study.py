@@ -36,6 +36,7 @@ import numpy as np
 import Sofa.Core
 import Sofa.SofaDeformable
 import Sofa.Simulation
+from common.sofa.controllers import unload
 
 from .metrics import Measurement, METRICS
 from .quadrature import MeshQuadrature
@@ -213,7 +214,7 @@ class ErrorConvergenceStudy:
 
         self.measure(mechanical, _mesh_label(cells))
 
-        Sofa.Simulation.unload(root)
+        unload(root)
 
     def measure(self, mechanical, label):
         """Measure an already-solved mesh, then add it as the next level.
