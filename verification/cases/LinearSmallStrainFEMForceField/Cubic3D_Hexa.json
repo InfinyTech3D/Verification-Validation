@@ -12,7 +12,7 @@
                       "residualThreshold": 0,
                       "printLog": false },
     "linearSolver": {
-      "type": "PCGLinearSolver", "iterations": 1000, "tolerance": 1e-24, "printLog": false,
+      "type": "PCGLinearSolver", "iterations": 1000, "tolerance": 1e-30, "printLog": false,
       "system": { "type": "PreconditionedMatrixFreeSystem" },
       "preconditioner": {
         "type": "SSORPreconditioner",
