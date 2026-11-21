@@ -1,0 +1,22 @@
+{
+  "geometry":    { "type": "Tyre2D", "inner_radius": 0.25, "outer_radius": 0.5 },
+  "element":     "quad",
+  "material":    { "type": "NeoHookean", "youngModulus": 1e6, "poissonRatio": 0.3 },
+  "forceField":  { "type": "HyperelasticityFEMForceField" },
+  "tractionOn":  { "outer": [1, 1] },
+  "solution":    { "type": "Quartic", "amplitude": 0.1 },
+  "excitationSteps": 1,
+  "errorQuadratureDegree": 3,
+  "sourceQuadratureDegree": 3,
+  "solvers": {
+    "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 10,
+                      "residualThreshold": 1e-14, "alwaysAdvanceNewton": true,
+                      "printLog": false },
+    "linearSolver": { "type": "SparseLDLSolver", "template": "CompressedRowSparseMatrixd" }
+  },
+  "mesh":        { "cells": [2, 16], "levels": 5, "refinementRatio": 2 },
+  "asymptoticTolerance": 0.10,
+  "expectedOrder": { "L2": 2.0, "H1": 1.0, "CauchyStress": 1.0, "EnergyDifference": 1.0 },
+  "expectedOrderTolerance": 0.15,
+  "relativeNoiseFloor": 1e-12
+}
