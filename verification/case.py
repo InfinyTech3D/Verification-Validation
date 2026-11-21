@@ -3,7 +3,7 @@
 import json
 import pathlib
 
-from common.geometry import Grid, Bar1D, Beam2D, Beam3D, Tire, Tire2D, Tire3D
+from common.geometry import Grid, Bar1D, Beam2D, Beam3D, Tyre, Tyre2D, Tyre3D
 from common.materials import MATERIALS
 from common.sofa.conventions import ELEMENTS
 
@@ -15,7 +15,7 @@ CASES_ROOT = pathlib.Path(__file__).parent / "cases"
 
 # case "geometry.type" -> geometry class, keyed by the class's own name.
 GEOMETRIES = {cls.__name__: cls for cls in (Grid, Bar1D, Beam2D, Beam3D,
-                                            Tire, Tire2D, Tire3D)}
+                                            Tyre, Tyre2D, Tyre3D)}
 
 
 class _ManufacturedSolutionRegistry:

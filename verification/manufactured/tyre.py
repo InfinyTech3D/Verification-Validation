@@ -1,8 +1,8 @@
-"""Manufactured solutions stated on the tire geometry (Chamberland et al., 2010, Sec. 5.2)."""
+"""Manufactured solutions stated on the tyre geometry (Chamberland et al., 2010, Sec. 5.2)."""
 
 import sympy as sp
 
-from common.geometry import Tire
+from common.geometry import Tyre
 
 from .base import ManufacturedSolution
 
@@ -14,7 +14,7 @@ class Quartic2D(ManufacturedSolution):
     u prescribed on the inner edge, traction on the outer.
     """
 
-    geometry = Tire
+    geometry = Tyre
     dim = 2
 
     def displacement(self, coordinates):
@@ -31,7 +31,7 @@ class Quartic3D(ManufacturedSolution):
     u prescribed on the inner and outer curved surfaces, traction on the two flat ones.
     """
 
-    geometry = Tire
+    geometry = Tyre
     dim = 3
 
     def displacement(self, coordinates):

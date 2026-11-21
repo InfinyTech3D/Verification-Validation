@@ -1,11 +1,11 @@
-"""Tire geometry (Chamberland et al., 2010, Fig. 1)."""
+"""Tyre geometry (Chamberland et al., 2010, Fig. 1)."""
 
 import numpy as np
 
 from .geometry import Geometry
 
 
-class Tire(Geometry):
+class Tyre(Geometry):
     """An annulus in the xy-plane, centered on the origin, extruded along z when it is 3D."""
 
     PARAMETER_ORDER = ("inner_radius", "outer_radius", "extrusion_length")
@@ -22,11 +22,11 @@ class Tire(Geometry):
         return predicates
 
 
-class Tire2D(Tire):
+class Tyre2D(Tyre):
     """An annulus occupying ``inner_radius <= r <= outer_radius`` of the xy-plane."""
     dim = 2
 
 
-class Tire3D(Tire):
-    """A Tire2D extruded along z from 0 to extrusion_length."""
+class Tyre3D(Tyre):
+    """A Tyre2D extruded along z from 0 to extrusion_length."""
     dim = 3

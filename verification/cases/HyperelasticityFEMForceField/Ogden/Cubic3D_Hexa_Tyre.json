@@ -1,16 +1,17 @@
 {
-  "geometry":    { "type": "Tire3D", "inner_radius": 0.25, "outer_radius": 0.5, "extrusion_length": 0.25 },
-  "element":     "tet",
-  "material":    { "type": "LinearElastic", "youngModulus": 1.0, "poissonRatio": 0.3 },
-  "forceField":  { "type": "LinearSmallStrainFEMForceField" },
+  "geometry":    { "type": "Tyre3D", "inner_radius": 0.25, "outer_radius": 0.5, "extrusion_length": 0.25 },
+  "element":     "hexa",
+  "material":    { "type": "Ogden", "mu": 8e5, "alpha": 4, "kappa": 8e5 },
+  "forceField":  { "type": "HyperelasticityFEMForceField" },
   "tractionOn":  { "front": [1, 1, 1], "back": [1, 1, 1] },
-  "solution":    { "type": "Cubic", "amplitude": 1.0 },
-  "errorQuadratureDegree": 2,
-  "sourceQuadratureDegree": 2,
+  "solution":    { "type": "Cubic", "amplitude": 0.01 },
+  "excitationSteps": 1,
+  "errorQuadratureDegree": 3,
+  "sourceQuadratureDegree": 3,
   "solvers": {
-    "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 1,
-                      "residualThreshold": 0,
-                      "printLog": false },
+    "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 10,
+                      "residualThreshold": 1e-14, "alwaysAdvanceNewton": true,
+                      "printLog": true },
     "linearSolver": {
       "type": "PCGLinearSolver", "iterations": 1000, "tolerance": 1e-24, "printLog": false,
       "system": { "type": "PreconditionedMatrixFreeSystem" },
@@ -20,7 +21,6 @@
       }
     }
   },
-  "gridMapping": { "swapping": true },
   "mesh":        { "cells": [2, 16, 2], "levels": 5, "refinementRatio": 2 },
   "asymptoticTolerance": 0.10,
   "expectedOrder": { "L2": 2.0, "H1": 1.0, "CauchyStress": 1.0, "EnergyDifference": 1.0 },

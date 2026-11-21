@@ -1,15 +1,16 @@
 {
-  "geometry":    { "type": "Tire3D", "inner_radius": 0.25, "outer_radius": 0.5, "extrusion_length": 0.25 },
+  "geometry":    { "type": "Tyre3D", "inner_radius": 0.25, "outer_radius": 0.5, "extrusion_length": 0.25 },
   "element":     "hexa",
-  "material":    { "type": "LinearElastic", "youngModulus": 1.0, "poissonRatio": 0.3 },
-  "forceField":  { "type": "LinearSmallStrainFEMForceField" },
+  "material":    { "type": "NeoHookean", "youngModulus": 1e6, "poissonRatio": 0.3 },
+  "forceField":  { "type": "HyperelasticityFEMForceField" },
   "tractionOn":  { "front": [1, 1, 1], "back": [1, 1, 1] },
-  "solution":    { "type": "Cubic", "amplitude": 1.0 },
+  "solution":    { "type": "Cubic", "amplitude": 0.05 },
+  "excitationSteps": 1,
   "errorQuadratureDegree": 3,
   "sourceQuadratureDegree": 3,
   "solvers": {
-    "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 1,
-                      "residualThreshold": 0,
+    "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 10,
+                      "residualThreshold": 1e-14, "alwaysAdvanceNewton": true,
                       "printLog": false },
     "linearSolver": {
       "type": "PCGLinearSolver", "iterations": 1000, "tolerance": 1e-24, "printLog": false,

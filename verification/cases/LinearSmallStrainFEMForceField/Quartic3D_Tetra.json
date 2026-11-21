@@ -1,5 +1,5 @@
 {
-  "geometry":    { "type": "Tire3D", "inner_radius": 0.25, "outer_radius": 0.5, "extrusion_length": 0.25 },
+  "geometry":    { "type": "Tyre3D", "inner_radius": 0.25, "outer_radius": 0.5, "extrusion_length": 0.25 },
   "element":     "tet",
   "material":    { "type": "LinearElastic", "youngModulus": 1.0, "poissonRatio": 0.3 },
   "forceField":  { "type": "LinearSmallStrainFEMForceField" },

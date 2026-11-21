@@ -1,4 +1,4 @@
-"""SOFA prefab: an elastic tire -- an annulus, extruded along z when it is 3D."""
+"""SOFA prefab: an elastic tyre -- an annulus, extruded along z when it is 3D."""
 
 import itertools
 
@@ -6,7 +6,7 @@ import numpy as np
 
 from .base import ScenePrefab
 from ..conventions import VEC_DIM, ELEMENTS
-from ...geometry import Tire
+from ...geometry import Tyre
 
 # Element kinds this prefab meshes, by the topological dimension of the geometry.
 ELEMENT_KINDS = {2: ('quad', 'tri'), 3: ('hexa', 'tet')}
@@ -29,18 +29,18 @@ _TETRA_PATTERNS = {
 
 
 def validate_parameters(config):
-    """Required ElasticTire parameters, and an element kind its geometry can be meshed with."""
+    """Required ElasticTyre parameters, and an element kind its geometry can be meshed with."""
     required = ['geometry', 'grid_resolution', 'element']
     missing = [p for p in required if p not in config]
     if missing:
-        raise ValueError(f"ElasticTire: missing required parameters {missing}")
+        raise ValueError(f"ElasticTyre: missing required parameters {missing}")
     geometry = config['geometry']
-    if not isinstance(geometry, Tire):
-        raise ValueError(f"ElasticTire: geometry must be a Tire2D or a Tire3D, "
+    if not isinstance(geometry, Tyre):
+        raise ValueError(f"ElasticTyre: geometry must be a Tyre2D or a Tyre3D, "
                          f"got {type(geometry).__name__}")
     kinds = ELEMENT_KINDS[geometry.dim]
     if config['element'] not in kinds:
-        raise ValueError(f"ElasticTire: element on a {type(geometry).__name__} must be one of "
+        raise ValueError(f"ElasticTyre: element on a {type(geometry).__name__} must be one of "
                          f"{list(kinds)}, got {config['element']!r}")
 
 
@@ -109,7 +109,7 @@ def tetrahedralize(hexahedra, cells):
     """
     radial, circumferential, axial = cells
     if circumferential % 2:
-        raise ValueError(f"ElasticTire: an odd number of circumferential cells "
+        raise ValueError(f"ElasticTyre: an odd number of circumferential cells "
                          f"({circumferential}) leaves the tetrahedra of the closing cell "
                          f"disagreeing with the first on their shared diagonal")
 
@@ -145,8 +145,8 @@ def mesh(geometry, cells, element):
     return nodes, elements
 
 
-class ElasticTire(ScenePrefab):
-    """Prefab for an elastic tire model in SOFA."""
+class ElasticTyre(ScenePrefab):
+    """Prefab for an elastic tyre model in SOFA."""
 
     prefabParameters = [
         {'name': 'grid_resolution', 'type': 'Vec3d',
@@ -167,20 +167,20 @@ class ElasticTire(ScenePrefab):
 
         nodes, elements = mesh(self.geometry, cells, self.element.value)
 
-        # Node containing Tire components
-        with self.addChild('Tire') as tire:
-            self.tire = tire
+        # Node containing Tyre components
+        with self.addChild('Tyre') as tyre:
+            self.tyre = tyre
 
             # Topology: meshed directly, so no grid and no topological mapping to reach it.
-            tire.addObject(element_kind.container, name='topology', position=nodes.tolist(),
+            tyre.addObject(element_kind.container, name='topology', position=nodes.tolist(),
                            **{element_kind.data_name: elements.tolist()})
             # DOFs
-            tire.addObject('MechanicalObject', name='dofs', template=VecType)
+            tyre.addObject('MechanicalObject', name='dofs', template=VecType)
             # The force field under test.
-            self.add_force_field(tire, self.configs['forceField'], self.configs['material'],
+            self.add_force_field(tyre, self.configs['forceField'], self.configs['material'],
                                  template=f"{VecType},{element_kind.cpp}", vec_template=VecType)
             # ODE & Linear Solvers
-            self.add_solvers(tire, self.configs['solvers'])
+            self.add_solvers(tyre, self.configs['solvers'])
 
     def mechanical_node(self):
-        return self.tire
+        return self.tyre
