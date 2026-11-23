@@ -1,0 +1,27 @@
+{
+  "geometry":    { "type": "Tyre2D", "inner_radius": 0.25, "outer_radius": 0.5 },
+  "element":     "tri",
+  "material":    { "type": "LinearElastic", "youngModulus": 1e6, "poissonRatio": 0.3 },
+  "forceField":  { "type": "CorotationalFEMForceField", "rotationMethod": "polar_affine" },
+  "tractionOn":  { "outer": [1, 1] },
+  "solution":    { "type": "Quartic", "amplitude": 0.1 },
+  "rotation":    { "angleDegrees": 45.0, "axis": "z" },
+  "errorQuadratureDegree": 2,
+  "sourceQuadratureDegree": 2,
+  "solvers": {
+    "integration":  { "type": "StaticEquilibriumIntegrationScheme", "maxNbIterationsNewton": 40,
+                      "maxNbIterationsLineSearch": 5,
+                      "residualThreshold": 1e-14, "alwaysAdvanceNewton": true,
+                      "printLog": true },
+    "linearSolver": {
+      "type": "EigenBiCGSTAB", "template": "CompressedRowSparseMatrixd",
+      "iterations": 3000, "tolerance": 1e-10, "printLog": true,
+      "preconditioner": "IncompleteLUT", "fillFactor": 10, "dropTolerance": 1e-3
+    }
+  },
+  "mesh":        { "cells": [2, 16], "levels": 5, "refinementRatio": 2 },
+  "asymptoticTolerance": 0.10,
+  "expectedOrder": { "L2": 2.0, "H1": 1.0, "CauchyStress": 1.0, "EnergyDifference": 1.0 },
+  "expectedOrderTolerance": 0.15,
+  "relativeNoiseFloor": 1e-12
+}
